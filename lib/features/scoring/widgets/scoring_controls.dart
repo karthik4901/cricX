@@ -1,10 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/match_state_provider.dart';
 
-class ScoringControls extends StatelessWidget {
+/// A ConsumerWidget that provides controls for scoring in a cricket match.
+/// 
+/// This widget uses Riverpod to interact with the match state.
+class ScoringControls extends ConsumerWidget {
   const ScoringControls({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    /// Note on ref.watch() vs ref.read():
+    /// - ref.watch() is used when you want to listen for changes to a provider's state
+    ///   and rebuild the widget when that state changes. It's used for displaying state.
+    /// - ref.read() is used for one-time reads of a provider, typically in callbacks
+    ///   like button presses. It doesn't set up a listener, so it won't cause rebuilds.
+    ///   It's used for performing actions that modify state.
     return Column(
       children: [
         // Top Row: Most important run buttons (1, 4)
@@ -13,8 +24,8 @@ class ScoringControls extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildPrimaryRunButton(context, '1'),
-              _buildPrimaryRunButton(context, '4'),
+              _buildPrimaryRunButton(context, '1', ref),
+              _buildPrimaryRunButton(context, '4', ref),
             ],
           ),
         ),
@@ -26,8 +37,8 @@ class ScoringControls extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildPrimaryRunButton(context, '0'),
-              _buildPrimaryRunButton(context, '6'),
+              _buildPrimaryRunButton(context, '0', ref),
+              _buildPrimaryRunButton(context, '6', ref),
             ],
           ),
         ),
@@ -39,8 +50,8 @@ class ScoringControls extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildSecondaryRunButton(context, '2'),
-              _buildSecondaryRunButton(context, '3'),
+              _buildSecondaryRunButton(context, '2', ref),
+              _buildSecondaryRunButton(context, '3', ref),
             ],
           ),
         ),
@@ -52,9 +63,9 @@ class ScoringControls extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildActionButton(context, 'Wicket'),
-              _buildActionButton(context, 'Extras'),
-              _buildActionButton(context, 'Undo'),
+              _buildActionButton(context, 'Wicket', ref),
+              _buildActionButton(context, 'Extras', ref),
+              _buildActionButton(context, 'Undo', ref),
             ],
           ),
         ),
@@ -62,12 +73,16 @@ class ScoringControls extends StatelessWidget {
     );
   }
 
-  Widget _buildPrimaryRunButton(BuildContext context, String label) {
+  Widget _buildPrimaryRunButton(BuildContext context, String label, WidgetRef ref) {
     return SizedBox(
       width: 120,
       height: 80,
       child: FilledButton(
-        onPressed: () {},
+        onPressed: () {
+          // Call addRuns with the corresponding number of runs
+          // Using ref.read() for actions that modify state
+          ref.read(matchStateProvider.notifier).addRuns(int.parse(label));
+        },
         style: FilledButton.styleFrom(
           padding: const EdgeInsets.all(16),
           shape: RoundedRectangleBorder(
@@ -82,12 +97,16 @@ class ScoringControls extends StatelessWidget {
     );
   }
 
-  Widget _buildSecondaryRunButton(BuildContext context, String label) {
+  Widget _buildSecondaryRunButton(BuildContext context, String label, WidgetRef ref) {
     return SizedBox(
       width: 120,
       height: 80,
       child: FilledButton.tonal(
-        onPressed: () {},
+        onPressed: () {
+          // Call addRuns with the corresponding number of runs
+          // Using ref.read() for actions that modify state
+          ref.read(matchStateProvider.notifier).addRuns(int.parse(label));
+        },
         style: FilledButton.styleFrom(
           padding: const EdgeInsets.all(16),
           shape: RoundedRectangleBorder(
@@ -102,9 +121,13 @@ class ScoringControls extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButton(BuildContext context, String label) {
+  Widget _buildActionButton(BuildContext context, String label, WidgetRef ref) {
     return OutlinedButton(
-      onPressed: () {},
+      onPressed: () {
+        if (label == 'Wicket') {
+          ref.read(matchStateProvider.notifier).recordWicket();
+        }
+      },
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       ),
