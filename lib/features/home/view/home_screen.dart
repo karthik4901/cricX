@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../features/match_setup/view/match_setup_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -16,7 +17,13 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             ElevatedButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const MatchSetupScreen(),
+                  ),
+                );
+              },
               child: const Text('Start New Match'),
             ),
           ],
