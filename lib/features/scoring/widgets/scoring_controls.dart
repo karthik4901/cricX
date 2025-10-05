@@ -126,6 +126,60 @@ class ScoringControls extends ConsumerWidget {
       onPressed: () {
         if (label == 'Wicket') {
           ref.read(matchStateProvider.notifier).recordWicket();
+        } else if (label == 'Extras') {
+          showModalBottomSheet(
+            context: context,
+            builder: (BuildContext context) {
+              return Container(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Record Extras',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16.0),
+                    Wrap(
+                      spacing: 8.0,
+                      runSpacing: 8.0,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            // Handle Wide
+                            Navigator.pop(context);
+                          },
+                          child: const Text('Wide'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            // Handle No Ball
+                            Navigator.pop(context);
+                          },
+                          child: const Text('No Ball'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            // Handle Bye
+                            Navigator.pop(context);
+                          },
+                          child: const Text('Bye'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            // Handle Leg Bye
+                            Navigator.pop(context);
+                          },
+                          child: const Text('Leg Bye'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
         }
       },
       style: OutlinedButton.styleFrom(
