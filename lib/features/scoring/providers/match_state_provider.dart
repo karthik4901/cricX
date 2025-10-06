@@ -28,8 +28,24 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
               players: [],
             ),
             currentInnings: 1,
+            matchDate: DateTime.now(),
+            location: '',
           ),
         );
+
+  void setMatchMetadata({required DateTime matchDate, required String location}) {
+    _history.add(state);
+    state = MatchState(
+      teamAInnings: state.teamAInnings,
+      teamBInnings: state.teamBInnings,
+      currentInnings: state.currentInnings,
+      striker: state.striker,
+      nonStriker: state.nonStriker,
+      bowler: state.bowler,
+      matchDate: matchDate,
+      location: location,
+    );
+  }
 
   /// Adds the lists of players to their respective teams.
   void addPlayers({
@@ -58,6 +74,29 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       teamAInnings: updatedTeamAInnings,
       teamBInnings: updatedTeamBInnings,
       currentInnings: state.currentInnings,
+      striker: state.striker,
+      nonStriker: state.nonStriker,
+      bowler: state.bowler,
+      matchDate: state.matchDate,
+      location: state.location,
+    );
+  }
+
+  void setOpeningPlayers({
+    required Player striker,
+    required Player nonStriker,
+    required Player bowler,
+  }) {
+    _history.add(state);
+    state = MatchState(
+      teamAInnings: state.teamAInnings,
+      teamBInnings: state.teamBInnings,
+      currentInnings: state.currentInnings,
+      striker: striker,
+      nonStriker: nonStriker,
+      bowler: bowler,
+      matchDate: state.matchDate,
+      location: state.location,
     );
   }
 
@@ -88,6 +127,11 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         teamAInnings: updatedTeamAInnings,
         teamBInnings: state.teamBInnings,
         currentInnings: state.currentInnings,
+        striker: state.striker,
+        nonStriker: state.nonStriker,
+        bowler: state.bowler,
+        matchDate: state.matchDate,
+        location: state.location,
       );
     } else {
       final newBalls = state.teamBInnings.balls + 1;
@@ -106,6 +150,11 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         teamAInnings: state.teamAInnings,
         teamBInnings: updatedTeamBInnings,
         currentInnings: state.currentInnings,
+        striker: state.striker,
+        nonStriker: state.nonStriker,
+        bowler: state.bowler,
+        matchDate: state.matchDate,
+        location: state.location,
       );
     }
   }
@@ -137,6 +186,11 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         teamAInnings: updatedTeamAInnings,
         teamBInnings: state.teamBInnings,
         currentInnings: state.currentInnings,
+        striker: state.striker,
+        nonStriker: state.nonStriker,
+        bowler: state.bowler,
+        matchDate: state.matchDate,
+        location: state.location,
       );
     } else {
       final newBalls = state.teamBInnings.balls + 1;
@@ -155,6 +209,11 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         teamAInnings: state.teamAInnings,
         teamBInnings: updatedTeamBInnings,
         currentInnings: state.currentInnings,
+        striker: state.striker,
+        nonStriker: state.nonStriker,
+        bowler: state.bowler,
+        matchDate: state.matchDate,
+        location: state.location,
       );
     }
   }
@@ -183,6 +242,11 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         teamBInnings:
             state.currentInnings == 2 ? updatedInnings : state.teamBInnings,
         currentInnings: state.currentInnings,
+        striker: state.striker,
+        nonStriker: state.nonStriker,
+        bowler: state.bowler,
+        matchDate: state.matchDate,
+        location: state.location,
       );
     } else if (type == ExtraType.bye || type == ExtraType.legBye) {
       addRuns(runs);

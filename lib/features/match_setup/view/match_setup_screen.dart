@@ -1,7 +1,9 @@
 import 'package:cricx/features/scoring/models/match_state.dart';
 import 'package:cricx/features/scoring/providers/match_state_provider.dart';
+import 'package:cricx/features/scoring/widgets/select_opening_players_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import '../../scoring/view/scoring_screen.dart';
 
@@ -13,6 +15,8 @@ class MatchSetupScreen extends ConsumerStatefulWidget {
 }
 
 class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
+  final _locationController = TextEditingController();
+  DateTime? _selectedDate;
   final _teamAController = TextEditingController();
   final _teamBController = TextEditingController();
   final List<TextEditingController> _teamAPlayerControllers =
@@ -24,6 +28,7 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
 
   @override
   void dispose() {
+    _locationController.dispose();
     _teamAController.dispose();
     _teamBController.dispose();
     for (var controller in _teamAPlayerControllers) {
@@ -33,6 +38,20 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
       controller.dispose();
     }
     super.dispose();
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
   }
 
   @override
@@ -46,6 +65,29 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            TextField(
+              controller: _locationController,
+              decoration: const InputDecoration(
+                labelText: 'Location',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            GestureDetector(
+              onTap: () => _selectDate(context),
+              child: AbsorbPointer(
+                child: TextField(
+                  decoration: InputDecoration(
+                    labelText: _selectedDate == null
+                        ? 'Match Date'
+                        : DateFormat.yMMMd().format(_selectedDate!),
+                    border: const OutlineInputBorder(),
+                    suffixIcon: const Icon(Icons.calendar_today),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
             TextField(
               controller: _teamAController,
               decoration: const InputDecoration(
@@ -91,7 +133,14 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
                     )),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
+                final location = _locationController.text;
+                final matchDate = _selectedDate ?? DateTime.now();
+
+                ref
+                    .read(matchStateProvider.notifier)
+                    .setMatchMetadata(matchDate: matchDate, location: location);
+
                 final teamAName = _teamAController.text.isNotEmpty
                     ? _teamAController.text
                     : 'Team A';
@@ -122,14 +171,35 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
                       teamBPlayers: teamBPlayers,
                     );
 
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => ScoringScreen(
-                      teamAName: teamAName,
-                      teamBName: teamBName,
-                    ),
-                  ),
+                final selectedPlayers = await showDialog<Map<String, Player>>(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (BuildContext context) {
+                    return SelectOpeningPlayersDialog(
+                      battingTeam: teamAPlayers,
+                      bowlingTeam: teamBPlayers,
+                    );
+                  },
                 );
+
+                if (selectedPlayers != null) {
+                  ref.read(matchStateProvider.notifier).setOpeningPlayers(
+                        striker: selectedPlayers['striker']!,
+                        nonStriker: selectedPlayers['nonStriker']!,
+                        bowler: selectedPlayers['bowler']!,
+                      );
+
+                  if (!context.mounted) return;
+
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => ScoringScreen(
+                        teamAName: teamAName,
+                        teamBName: teamBName,
+                      ),
+                    ),
+                  );
+                }
               },
               child: const Text('Start Scoring'),
             ),
