@@ -18,18 +18,48 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
               wickets: 0,
               overs: 0,
               balls: 0,
+              players: [],
             ),
             teamBInnings: const TeamInnings(
               score: 0,
               wickets: 0,
               overs: 0,
               balls: 0,
+              players: [],
             ),
             currentInnings: 1,
           ),
         );
 
-  // Methods to update the match state can be added here
+  /// Adds the lists of players to their respective teams.
+  void addPlayers({
+    required List<Player> teamAPlayers,
+    required List<Player> teamBPlayers,
+  }) {
+    _history.add(state);
+
+    final updatedTeamAInnings = TeamInnings(
+      score: state.teamAInnings.score,
+      wickets: state.teamAInnings.wickets,
+      overs: state.teamAInnings.overs,
+      balls: state.teamAInnings.balls,
+      players: teamAPlayers,
+    );
+
+    final updatedTeamBInnings = TeamInnings(
+      score: state.teamBInnings.score,
+      wickets: state.teamBInnings.wickets,
+      overs: state.teamBInnings.overs,
+      balls: state.teamBInnings.balls,
+      players: teamBPlayers,
+    );
+
+    state = MatchState(
+      teamAInnings: updatedTeamAInnings,
+      teamBInnings: updatedTeamBInnings,
+      currentInnings: state.currentInnings,
+    );
+  }
 
   /// Updates the score by adding the specified number of runs to the current innings.
   ///
@@ -50,6 +80,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         wickets: state.teamAInnings.wickets,
         overs: newOvers,
         balls: newBalls % 6,
+        players: state.teamAInnings.players,
       );
 
       // Create a new state with the updated innings
@@ -67,6 +98,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         wickets: state.teamBInnings.wickets,
         overs: newOvers,
         balls: newBalls % 6,
+        players: state.teamBInnings.players,
       );
 
       // Create a new state with the updated innings
@@ -97,6 +129,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         wickets: state.teamAInnings.wickets + 1,
         overs: newOvers,
         balls: newBalls % 6,
+        players: state.teamAInnings.players,
       );
 
       // Create a new state with the updated innings
@@ -114,6 +147,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         wickets: state.teamBInnings.wickets + 1,
         overs: newOvers,
         balls: newBalls % 6,
+        players: state.teamBInnings.players,
       );
 
       // Create a new state with the updated innings
@@ -140,6 +174,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         wickets: currentInnings.wickets,
         overs: currentInnings.overs,
         balls: currentInnings.balls,
+        players: currentInnings.players,
       );
 
       state = MatchState(
