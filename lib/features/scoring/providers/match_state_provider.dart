@@ -6,6 +6,8 @@ import '../models/match_state.dart';
 /// It acts as the "brain" that controls how the match state can change over time.
 /// This class handles all the logic for updating scores, wickets, overs, etc.
 class MatchStateNotifier extends StateNotifier<MatchState> {
+  final List<MatchState> _history = [];
+
   /// Creates a new MatchStateNotifier with initial default values.
   /// All scores and wickets are initialized to 0, and we start with the first innings.
   MatchStateNotifier()
@@ -37,6 +39,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
   /// Riverpod recognizes the state has changed and notifies all listeners, triggering
   /// UI updates in widgets that depend on this state.
   void addRuns(int runs) {
+    _history.add(state);
     // Determine which team's innings to update based on currentInnings
     if (state.currentInnings == 1) {
       final newBalls = state.teamAInnings.balls + 1;
@@ -83,6 +86,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
   /// Riverpod recognizes the state has changed and notifies all listeners, triggering
   /// UI updates in widgets that depend on this state.
   void recordWicket() {
+    _history.add(state);
     // Determine which team's innings to update based on currentInnings
     if (state.currentInnings == 1) {
       final newBalls = state.teamAInnings.balls + 1;
@@ -127,6 +131,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
   /// For a bye or leg-bye, the score is updated, and the ball count increases.
   void recordExtra({required ExtraType type, int runs = 1}) {
     if (type == ExtraType.wide || type == ExtraType.noBall) {
+      _history.add(state);
       TeamInnings currentInnings =
           state.currentInnings == 1 ? state.teamAInnings : state.teamBInnings;
 
@@ -134,7 +139,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         score: currentInnings.score + runs,
         wickets: currentInnings.wickets,
         overs: currentInnings.overs,
-        balls: currentInnings.balls, // This was the missing piece
+        balls: currentInnings.balls,
       );
 
       state = MatchState(
@@ -146,6 +151,12 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       );
     } else if (type == ExtraType.bye || type == ExtraType.legBye) {
       addRuns(runs);
+    }
+  }
+
+  void undoLastAction() {
+    if (_history.isNotEmpty) {
+      state = _history.removeLast();
     }
   }
 }

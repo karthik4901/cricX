@@ -187,6 +187,8 @@ class ScoringControls extends ConsumerWidget {
               );
             },
           );
+        } else if (label == 'Undo') {
+          ref.read(matchStateProvider.notifier).undoLastAction();
         }
       },
       style: OutlinedButton.styleFrom(
