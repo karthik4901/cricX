@@ -1,9 +1,10 @@
+import 'package:cricx/features/scoring/models/match_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/match_state_provider.dart';
 
 /// A ConsumerWidget that provides controls for scoring in a cricket match.
-/// 
+///
 /// This widget uses Riverpod to interact with the match state.
 class ScoringControls extends ConsumerWidget {
   const ScoringControls({super.key});
@@ -73,7 +74,8 @@ class ScoringControls extends ConsumerWidget {
     );
   }
 
-  Widget _buildPrimaryRunButton(BuildContext context, String label, WidgetRef ref) {
+  Widget _buildPrimaryRunButton(
+      BuildContext context, String label, WidgetRef ref) {
     return SizedBox(
       width: 120,
       height: 80,
@@ -97,7 +99,8 @@ class ScoringControls extends ConsumerWidget {
     );
   }
 
-  Widget _buildSecondaryRunButton(BuildContext context, String label, WidgetRef ref) {
+  Widget _buildSecondaryRunButton(
+      BuildContext context, String label, WidgetRef ref) {
     return SizedBox(
       width: 120,
       height: 80,
@@ -147,28 +150,32 @@ class ScoringControls extends ConsumerWidget {
                       children: [
                         ElevatedButton(
                           onPressed: () {
-                            // Handle Wide
+                            ref.read(matchStateProvider.notifier).recordExtra(
+                                type: ExtraType.wide, runs: 1);
                             Navigator.pop(context);
                           },
                           child: const Text('Wide'),
                         ),
                         ElevatedButton(
                           onPressed: () {
-                            // Handle No Ball
+                            ref.read(matchStateProvider.notifier).recordExtra(
+                                type: ExtraType.noBall, runs: 1);
                             Navigator.pop(context);
                           },
                           child: const Text('No Ball'),
                         ),
                         ElevatedButton(
                           onPressed: () {
-                            // Handle Bye
+                            ref.read(matchStateProvider.notifier).recordExtra(
+                                type: ExtraType.bye, runs: 1);
                             Navigator.pop(context);
                           },
                           child: const Text('Bye'),
                         ),
                         ElevatedButton(
                           onPressed: () {
-                            // Handle Leg Bye
+                            ref.read(matchStateProvider.notifier).recordExtra(
+                                type: ExtraType.legBye, runs: 1);
                             Navigator.pop(context);
                           },
                           child: const Text('Leg Bye'),
