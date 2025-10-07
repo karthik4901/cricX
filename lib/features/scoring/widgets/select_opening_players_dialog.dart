@@ -24,7 +24,6 @@ class _SelectOpeningPlayersDialogState
 
   @override
   Widget build(BuildContext context) {
-    // Filter the lists to prevent selecting the same player twice.
     final strikerOptions = widget.battingTeam
         .where((player) => player.id != _selectedNonStriker?.id)
         .toList();
@@ -52,7 +51,6 @@ class _SelectOpeningPlayersDialogState
             onChanged: (player) {
               setState(() {
                 _selectedStriker = player;
-                // If the new striker is the same as the non-striker, reset the non-striker.
                 if (_selectedStriker != null &&
                     _selectedStriker!.id == _selectedNonStriker?.id) {
                   _selectedNonStriker = null;
@@ -75,7 +73,6 @@ class _SelectOpeningPlayersDialogState
             onChanged: (player) {
               setState(() {
                 _selectedNonStriker = player;
-                // If the new non-striker is the same as the striker, reset the striker.
                 if (_selectedNonStriker != null &&
                     _selectedNonStriker!.id == _selectedStriker?.id) {
                   _selectedStriker = null;
@@ -113,11 +110,16 @@ class _SelectOpeningPlayersDialogState
                   _selectedNonStriker != null &&
                   _selectedBowler != null)
               ? () {
-                  // Return the selected players
-                  Navigator.of(context).pop({
-                    'striker': _selectedStriker,
-                    'nonStriker': _selectedNonStriker,
-                    'bowler': _selectedBowler,
+                  // FIX 1: Explicitly create a map of the correct, non-nullable type.
+                  final Map<String, Player> result = {
+                    'striker': _selectedStriker!,
+                    'nonStriker': _selectedNonStriker!,
+                    'bowler': _selectedBowler!,
+                  };
+
+                  // FIX 2: Schedule the pop to run after the build cycle to prevent race conditions.
+                  Future.delayed(Duration.zero, () {
+                    Navigator.of(context).pop(result);
                   });
                 }
               : null, // Disable button if not all players are selected

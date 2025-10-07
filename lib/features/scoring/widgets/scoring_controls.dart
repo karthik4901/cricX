@@ -3,62 +3,120 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/match_state_provider.dart';
 
-/// A ConsumerWidget that provides controls for scoring in a cricket match.
-///
-/// This widget uses Riverpod to interact with the match state.
+// A private stateful widget to manage the button's animation state.
+class _AnimatedRunButton extends StatefulWidget {
+  final String label;
+  final bool isPrimary;
+  final VoidCallback onPressed;
+
+  const _AnimatedRunButton({
+    required this.label,
+    required this.onPressed,
+    this.isPrimary = false,
+  });
+
+  @override
+  State<_AnimatedRunButton> createState() => _AnimatedRunButtonState();
+}
+
+class _AnimatedRunButtonState extends State<_AnimatedRunButton> {
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    // The actual button widget, which will be animated.
+    // The button's own onPressed is empty because the GestureDetector handles the tap.
+    final button = widget.isPrimary
+        ? FilledButton(
+            onPressed: () {},
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.all(16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              widget.label,
+              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+            ),
+          )
+        : FilledButton.tonal(
+            onPressed: () {},
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.all(16), // Correctly placed inside styleFrom
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              widget.label,
+              style: const TextStyle(fontSize: 24),
+            ),
+          );
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) {
+        setState(() => _isPressed = false);
+        widget.onPressed(); // Trigger the action on release
+      },
+      onTapCancel: () => setState(() => _isPressed = false),
+      child: AnimatedScale(
+        scale: _isPressed ? 0.95 : 1.0,
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeInOut,
+        child: SizedBox(
+          width: 120,
+          height: 80,
+          // AbsorbPointer prevents the button's own tap events from firing,
+          // ensuring only the GestureDetector handles the interaction.
+          child: AbsorbPointer(child: button),
+        ),
+      ),
+    );
+  }
+}
+
 class ScoringControls extends ConsumerWidget {
   const ScoringControls({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    /// Note on ref.watch() vs ref.read():
-    /// - ref.watch() is used when you want to listen for changes to a provider's state
-    ///   and rebuild the widget when that state changes. It's used for displaying state.
-    /// - ref.read() is used for one-time reads of a provider, typically in callbacks
-    ///   like button presses. It doesn't set up a listener, so it won't cause rebuilds.
-    ///   It's used for performing actions that modify state.
     return Column(
       children: [
-        // Top Row: Most important run buttons (1, 4)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildPrimaryRunButton(context, '1', ref),
-              _buildPrimaryRunButton(context, '4', ref),
+              _AnimatedRunButton(label: '1', onPressed: () => ref.read(matchStateProvider.notifier).addRuns(1), isPrimary: true),
+              _AnimatedRunButton(label: '4', onPressed: () => ref.read(matchStateProvider.notifier).addRuns(4), isPrimary: true),
             ],
           ),
         ),
         const SizedBox(height: 16),
-
-        // Second Row: Next most important buttons (0, 6)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildPrimaryRunButton(context, '0', ref),
-              _buildPrimaryRunButton(context, '6', ref),
+              _AnimatedRunButton(label: '0', onPressed: () => ref.read(matchStateProvider.notifier).addRuns(0), isPrimary: true),
+              _AnimatedRunButton(label: '6', onPressed: () => ref.read(matchStateProvider.notifier).addRuns(6), isPrimary: true),
             ],
           ),
         ),
         const SizedBox(height: 16),
-
-        // Third Row: Less common runs (2, 3)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildSecondaryRunButton(context, '2', ref),
-              _buildSecondaryRunButton(context, '3', ref),
+              _AnimatedRunButton(label: '2', onPressed: () => ref.read(matchStateProvider.notifier).addRuns(2)),
+              _AnimatedRunButton(label: '3', onPressed: () => ref.read(matchStateProvider.notifier).addRuns(3)),
             ],
           ),
         ),
         const SizedBox(height: 24),
-
-        // Bottom Action Bar
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Row(
@@ -71,56 +129,6 @@ class ScoringControls extends ConsumerWidget {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildPrimaryRunButton(
-      BuildContext context, String label, WidgetRef ref) {
-    return SizedBox(
-      width: 120,
-      height: 80,
-      child: FilledButton(
-        onPressed: () {
-          // Call addRuns with the corresponding number of runs
-          // Using ref.read() for actions that modify state
-          ref.read(matchStateProvider.notifier).addRuns(int.parse(label));
-        },
-        style: FilledButton.styleFrom(
-          padding: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSecondaryRunButton(
-      BuildContext context, String label, WidgetRef ref) {
-    return SizedBox(
-      width: 120,
-      height: 80,
-      child: FilledButton.tonal(
-        onPressed: () {
-          // Call addRuns with the corresponding number of runs
-          // Using ref.read() for actions that modify state
-          ref.read(matchStateProvider.notifier).addRuns(int.parse(label));
-        },
-        style: FilledButton.styleFrom(
-          padding: const EdgeInsets.all(16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(fontSize: 24),
-        ),
-      ),
     );
   }
 
@@ -150,32 +158,28 @@ class ScoringControls extends ConsumerWidget {
                       children: [
                         ElevatedButton(
                           onPressed: () {
-                            ref.read(matchStateProvider.notifier).recordExtra(
-                                type: ExtraType.wide, runs: 1);
+                            ref.read(matchStateProvider.notifier).recordExtra(type: ExtraType.wide, runs: 1);
                             Navigator.pop(context);
                           },
                           child: const Text('Wide'),
                         ),
                         ElevatedButton(
                           onPressed: () {
-                            ref.read(matchStateProvider.notifier).recordExtra(
-                                type: ExtraType.noBall, runs: 1);
+                            ref.read(matchStateProvider.notifier).recordExtra(type: ExtraType.noBall, runs: 1);
                             Navigator.pop(context);
                           },
                           child: const Text('No Ball'),
                         ),
                         ElevatedButton(
                           onPressed: () {
-                            ref.read(matchStateProvider.notifier).recordExtra(
-                                type: ExtraType.bye, runs: 1);
+                            ref.read(matchStateProvider.notifier).recordExtra(type: ExtraType.bye, runs: 1);
                             Navigator.pop(context);
                           },
                           child: const Text('Bye'),
                         ),
                         ElevatedButton(
                           onPressed: () {
-                            ref.read(matchStateProvider.notifier).recordExtra(
-                                type: ExtraType.legBye, runs: 1);
+                            ref.read(matchStateProvider.notifier).recordExtra(type: ExtraType.legBye, runs: 1);
                             Navigator.pop(context);
                           },
                           child: const Text('Leg Bye'),
