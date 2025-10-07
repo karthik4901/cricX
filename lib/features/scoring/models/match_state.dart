@@ -4,10 +4,56 @@ class Player {
   final String id;
   final String name;
 
-  const Player({
+  // Batting Stats
+  final int runsScored;
+  final int ballsFaced;
+  final int fours;
+  final int sixes;
+
+  // Bowling Stats
+  final int wicketsTaken;
+  final double oversBowled;
+  final int runsConceded;
+  final int maidens;
+
+  Player({
     required this.id,
     required this.name,
+    this.runsScored = 0,
+    this.ballsFaced = 0,
+    this.fours = 0,
+    this.sixes = 0,
+    this.wicketsTaken = 0,
+    this.oversBowled = 0.0,
+    this.runsConceded = 0,
+    this.maidens = 0,
   });
+
+  Player copyWith({
+    String? id,
+    String? name,
+    int? runsScored,
+    int? ballsFaced,
+    int? fours,
+    int? sixes,
+    int? wicketsTaken,
+    double? oversBowled,
+    int? runsConceded,
+    int? maidens,
+  }) {
+    return Player(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      runsScored: runsScored ?? this.runsScored,
+      ballsFaced: ballsFaced ?? this.ballsFaced,
+      fours: fours ?? this.fours,
+      sixes: sixes ?? this.sixes,
+      wicketsTaken: wicketsTaken ?? this.wicketsTaken,
+      oversBowled: oversBowled ?? this.oversBowled,
+      runsConceded: runsConceded ?? this.runsConceded,
+      maidens: maidens ?? this.maidens,
+    );
+  }
 }
 
 class TeamInnings {

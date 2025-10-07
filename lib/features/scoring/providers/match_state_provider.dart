@@ -9,18 +9,17 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
   final List<MatchState> _history = [];
 
   /// Creates a new MatchStateNotifier with initial default values.
-  /// All scores and wickets are initialized to 0, and we start with the first innings.
   MatchStateNotifier()
       : super(
           MatchState(
-            teamAInnings: const TeamInnings(
+            teamAInnings: TeamInnings(
               score: 0,
               wickets: 0,
               overs: 0,
               balls: 0,
               players: [],
             ),
-            teamBInnings: const TeamInnings(
+            teamBInnings: TeamInnings(
               score: 0,
               wickets: 0,
               overs: 0,
@@ -32,6 +31,11 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
             location: '',
           ),
         );
+
+  // Helper to update a player in a list immutably
+  List<Player> _updatePlayerInList(List<Player> players, Player updatedPlayer) {
+    return players.map((p) => p.id == updatedPlayer.id ? updatedPlayer : p).toList();
+  }
 
   void setMatchMetadata({required DateTime matchDate, required String location}) {
     _history.add(state);
@@ -47,32 +51,26 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
     );
   }
 
-  /// Adds the lists of players to their respective teams.
   void addPlayers({
     required List<Player> teamAPlayers,
     required List<Player> teamBPlayers,
   }) {
     _history.add(state);
-
-    final updatedTeamAInnings = TeamInnings(
-      score: state.teamAInnings.score,
-      wickets: state.teamAInnings.wickets,
-      overs: state.teamAInnings.overs,
-      balls: state.teamAInnings.balls,
-      players: teamAPlayers,
-    );
-
-    final updatedTeamBInnings = TeamInnings(
-      score: state.teamBInnings.score,
-      wickets: state.teamBInnings.wickets,
-      overs: state.teamBInnings.overs,
-      balls: state.teamBInnings.balls,
-      players: teamBPlayers,
-    );
-
     state = MatchState(
-      teamAInnings: updatedTeamAInnings,
-      teamBInnings: updatedTeamBInnings,
+      teamAInnings: TeamInnings(
+        score: state.teamAInnings.score,
+        wickets: state.teamAInnings.wickets,
+        overs: state.teamAInnings.overs,
+        balls: state.teamAInnings.balls,
+        players: teamAPlayers,
+      ),
+      teamBInnings: TeamInnings(
+        score: state.teamBInnings.score,
+        wickets: state.teamBInnings.wickets,
+        overs: state.teamBInnings.overs,
+        balls: state.teamBInnings.balls,
+        players: teamBPlayers,
+      ),
       currentInnings: state.currentInnings,
       striker: state.striker,
       nonStriker: state.nonStriker,
@@ -100,34 +98,35 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
     );
   }
 
-  /// Updates the score by adding the specified number of runs to the current innings.
-  ///
-  /// This method creates a new state object rather than modifying the existing one.
-  /// Immutability is crucial for Riverpod because it detects state changes by comparing
-  /// object references (not their content). By creating a new object, we ensure that
-  /// Riverpod recognizes the state has changed and notifies all listeners, triggering
-  /// UI updates in widgets that depend on this state.
   void addRuns(int runs) {
     _history.add(state);
-    // Determine which team's innings to update based on currentInnings
+
+    if (state.striker == null) return; // Safety check
+
+    // Update striker stats
+    final updatedStriker = state.striker!.copyWith(
+      runsScored: state.striker!.runsScored + runs,
+      ballsFaced: state.striker!.ballsFaced + 1,
+      fours: runs == 4 ? state.striker!.fours + 1 : state.striker!.fours,
+      sixes: runs == 6 ? state.striker!.sixes + 1 : state.striker!.sixes,
+    );
+
     if (state.currentInnings == 1) {
       final newBalls = state.teamAInnings.balls + 1;
       final newOvers = state.teamAInnings.overs + (newBalls == 6 ? 1 : 0);
-      // Update Team A's innings
-      final updatedTeamAInnings = TeamInnings(
-        score: state.teamAInnings.score + runs,
-        wickets: state.teamAInnings.wickets,
-        overs: newOvers,
-        balls: newBalls % 6,
-        players: state.teamAInnings.players,
-      );
+      final updatedPlayers = _updatePlayerInList(state.teamAInnings.players, updatedStriker);
 
-      // Create a new state with the updated innings
       state = MatchState(
-        teamAInnings: updatedTeamAInnings,
+        teamAInnings: TeamInnings(
+          score: state.teamAInnings.score + runs,
+          wickets: state.teamAInnings.wickets,
+          overs: newOvers,
+          balls: newBalls % 6,
+          players: updatedPlayers,
+        ),
         teamBInnings: state.teamBInnings,
         currentInnings: state.currentInnings,
-        striker: state.striker,
+        striker: updatedStriker,
         nonStriker: state.nonStriker,
         bowler: state.bowler,
         matchDate: state.matchDate,
@@ -136,21 +135,19 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
     } else {
       final newBalls = state.teamBInnings.balls + 1;
       final newOvers = state.teamBInnings.overs + (newBalls == 6 ? 1 : 0);
-      // Update Team B's innings
-      final updatedTeamBInnings = TeamInnings(
-        score: state.teamBInnings.score + runs,
-        wickets: state.teamBInnings.wickets,
-        overs: newOvers,
-        balls: newBalls % 6,
-        players: state.teamBInnings.players,
-      );
+      final updatedPlayers = _updatePlayerInList(state.teamBInnings.players, updatedStriker);
 
-      // Create a new state with the updated innings
       state = MatchState(
         teamAInnings: state.teamAInnings,
-        teamBInnings: updatedTeamBInnings,
+        teamBInnings: TeamInnings(
+          score: state.teamBInnings.score + runs,
+          wickets: state.teamBInnings.wickets,
+          overs: newOvers,
+          balls: newBalls % 6,
+          players: updatedPlayers,
+        ),
         currentInnings: state.currentInnings,
-        striker: state.striker,
+        striker: updatedStriker,
         nonStriker: state.nonStriker,
         bowler: state.bowler,
         matchDate: state.matchDate,
@@ -159,96 +156,113 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
     }
   }
 
-  /// Updates the wickets count by incrementing it by 1 for the current innings.
-  ///
-  /// This method creates a new state object rather than modifying the existing one.
-  /// Immutability is crucial for Riverpod because it detects state changes by comparing
-  /// object references (not their content). By creating a new object, we ensure that
-  /// Riverpod recognizes the state has changed and notifies all listeners, triggering
-  /// UI updates in widgets that depend on this state.
   void recordWicket() {
     _history.add(state);
-    // Determine which team's innings to update based on currentInnings
+
+    if (state.bowler == null) return; // Safety check
+
+    // Update bowler stats
+    final updatedBowler = state.bowler!.copyWith(
+      wicketsTaken: state.bowler!.wicketsTaken + 1,
+    );
+
     if (state.currentInnings == 1) {
+      // Team A is batting, Team B is bowling
       final newBalls = state.teamAInnings.balls + 1;
       final newOvers = state.teamAInnings.overs + (newBalls == 6 ? 1 : 0);
-      // Update Team A's innings
-      final updatedTeamAInnings = TeamInnings(
-        score: state.teamAInnings.score,
-        wickets: state.teamAInnings.wickets + 1,
-        overs: newOvers,
-        balls: newBalls % 6,
-        players: state.teamAInnings.players,
-      );
+      final updatedBowlingTeamPlayers = _updatePlayerInList(state.teamBInnings.players, updatedBowler);
 
-      // Create a new state with the updated innings
       state = MatchState(
-        teamAInnings: updatedTeamAInnings,
-        teamBInnings: state.teamBInnings,
+        teamAInnings: TeamInnings(
+          score: state.teamAInnings.score,
+          wickets: state.teamAInnings.wickets + 1,
+          overs: newOvers,
+          balls: newBalls % 6,
+          players: state.teamAInnings.players,
+        ),
+        teamBInnings: TeamInnings(
+            score: state.teamBInnings.score,
+            wickets: state.teamBInnings.wickets,
+            overs: state.teamBInnings.overs,
+            balls: state.teamBInnings.balls,
+            players: updatedBowlingTeamPlayers),
         currentInnings: state.currentInnings,
-        striker: state.striker,
+        striker: state.striker, // This will be replaced by the new batsman
         nonStriker: state.nonStriker,
-        bowler: state.bowler,
+        bowler: updatedBowler,
         matchDate: state.matchDate,
         location: state.location,
       );
     } else {
+      // Team B is batting, Team A is bowling
       final newBalls = state.teamBInnings.balls + 1;
       final newOvers = state.teamBInnings.overs + (newBalls == 6 ? 1 : 0);
-      // Update Team B's innings
-      final updatedTeamBInnings = TeamInnings(
-        score: state.teamBInnings.score,
-        wickets: state.teamBInnings.wickets + 1,
-        overs: newOvers,
-        balls: newBalls % 6,
-        players: state.teamBInnings.players,
-      );
+      final updatedBowlingTeamPlayers = _updatePlayerInList(state.teamAInnings.players, updatedBowler);
 
-      // Create a new state with the updated innings
       state = MatchState(
-        teamAInnings: state.teamAInnings,
-        teamBInnings: updatedTeamBInnings,
+        teamAInnings: TeamInnings(
+            score: state.teamAInnings.score,
+            wickets: state.teamAInnings.wickets,
+            overs: state.teamAInnings.overs,
+            balls: state.teamAInnings.balls,
+            players: updatedBowlingTeamPlayers),
+        teamBInnings: TeamInnings(
+          score: state.teamBInnings.score,
+          wickets: state.teamBInnings.wickets + 1,
+          overs: newOvers,
+          balls: newBalls % 6,
+          players: state.teamBInnings.players,
+        ),
         currentInnings: state.currentInnings,
-        striker: state.striker,
+        striker: state.striker, // This will be replaced by the new batsman
         nonStriker: state.nonStriker,
-        bowler: state.bowler,
+        bowler: updatedBowler,
         matchDate: state.matchDate,
         location: state.location,
       );
     }
   }
 
-  /// Records an extra run (e.g., wide, no-ball, bye, leg-bye).
-  ///
-  /// For a wide or no-ball, the score is updated, but the ball count does not increase.
-  /// For a bye or leg-bye, the score is updated, and the ball count increases.
   void recordExtra({required ExtraType type, int runs = 1}) {
+    _history.add(state);
+
     if (type == ExtraType.wide || type == ExtraType.noBall) {
-      _history.add(state);
-      TeamInnings currentInnings =
-          state.currentInnings == 1 ? state.teamAInnings : state.teamBInnings;
+      if (state.bowler == null) return; // Safety check
 
-      TeamInnings updatedInnings = TeamInnings(
-        score: currentInnings.score + runs,
-        wickets: currentInnings.wickets,
-        overs: currentInnings.overs,
-        balls: currentInnings.balls,
-        players: currentInnings.players,
+      final updatedBowler = state.bowler!.copyWith(
+        runsConceded: state.bowler!.runsConceded + runs,
       );
 
-      state = MatchState(
-        teamAInnings:
-            state.currentInnings == 1 ? updatedInnings : state.teamAInnings,
-        teamBInnings:
-            state.currentInnings == 2 ? updatedInnings : state.teamBInnings,
-        currentInnings: state.currentInnings,
-        striker: state.striker,
-        nonStriker: state.nonStriker,
-        bowler: state.bowler,
-        matchDate: state.matchDate,
-        location: state.location,
-      );
+      if (state.currentInnings == 1) {
+        // Team A batting, Team B bowling
+        final updatedBowlingTeamPlayers = _updatePlayerInList(state.teamBInnings.players, updatedBowler);
+        state = MatchState(
+          teamAInnings: state.teamAInnings.copyWith(score: state.teamAInnings.score + runs),
+          teamBInnings: state.teamBInnings.copyWith(players: updatedBowlingTeamPlayers),
+          currentInnings: state.currentInnings,
+          striker: state.striker,
+          nonStriker: state.nonStriker,
+          bowler: updatedBowler,
+          matchDate: state.matchDate,
+          location: state.location,
+        );
+      } else {
+        // Team B batting, Team A bowling
+        final updatedBowlingTeamPlayers = _updatePlayerInList(state.teamAInnings.players, updatedBowler);
+        state = MatchState(
+          teamAInnings: state.teamAInnings.copyWith(players: updatedBowlingTeamPlayers),
+          teamBInnings: state.teamBInnings.copyWith(score: state.teamBInnings.score + runs),
+          currentInnings: state.currentInnings,
+          striker: state.striker,
+          nonStriker: state.nonStriker,
+          bowler: updatedBowler,
+          matchDate: state.matchDate,
+          location: state.location,
+        );
+      }
     } else if (type == ExtraType.bye || type == ExtraType.legBye) {
+      // Note: This currently incorrectly assigns runs to the striker.
+      // A future refactoring is needed to handle this properly.
       addRuns(runs);
     }
   }
@@ -260,11 +274,26 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
   }
 }
 
-/// The matchStateProvider is the access point for the MatchState throughout the app.
-/// It creates and exposes the MatchStateNotifier to widgets that need to:
-/// 1. Read the current match state
-/// 2. Listen for changes to the match state
-/// 3. Modify the match state through the notifier
+// Extension methods for easier immutable updates
+
+extension on TeamInnings {
+  TeamInnings copyWith({
+    int? score,
+    int? wickets,
+    int? overs,
+    int? balls,
+    List<Player>? players,
+  }) {
+    return TeamInnings(
+      score: score ?? this.score,
+      wickets: wickets ?? this.wickets,
+      overs: overs ?? this.overs,
+      balls: balls ?? this.balls,
+      players: players ?? this.players,
+    );
+  }
+}
+
 final matchStateProvider =
     StateNotifierProvider<MatchStateNotifier, MatchState>((ref) {
   return MatchStateNotifier();

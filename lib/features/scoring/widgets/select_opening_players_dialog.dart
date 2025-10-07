@@ -24,6 +24,14 @@ class _SelectOpeningPlayersDialogState
 
   @override
   Widget build(BuildContext context) {
+    // Filter the lists to prevent selecting the same player twice.
+    final strikerOptions = widget.battingTeam
+        .where((player) => player.id != _selectedNonStriker?.id)
+        .toList();
+    final nonStrikerOptions = widget.battingTeam
+        .where((player) => player.id != _selectedStriker?.id)
+        .toList();
+
     return AlertDialog(
       title: const Text('Select Opening Players'),
       content: Column(
@@ -35,7 +43,7 @@ class _SelectOpeningPlayersDialogState
             value: _selectedStriker,
             hint: const Text('Select Striker'),
             isExpanded: true,
-            items: widget.battingTeam.map((player) {
+            items: strikerOptions.map((player) {
               return DropdownMenuItem(
                 value: player,
                 child: Text(player.name),
@@ -44,6 +52,11 @@ class _SelectOpeningPlayersDialogState
             onChanged: (player) {
               setState(() {
                 _selectedStriker = player;
+                // If the new striker is the same as the non-striker, reset the non-striker.
+                if (_selectedStriker != null &&
+                    _selectedStriker!.id == _selectedNonStriker?.id) {
+                  _selectedNonStriker = null;
+                }
               });
             },
           ),
@@ -53,7 +66,7 @@ class _SelectOpeningPlayersDialogState
             value: _selectedNonStriker,
             hint: const Text('Select Non-Striker'),
             isExpanded: true,
-            items: widget.battingTeam.map((player) {
+            items: nonStrikerOptions.map((player) {
               return DropdownMenuItem(
                 value: player,
                 child: Text(player.name),
@@ -62,6 +75,11 @@ class _SelectOpeningPlayersDialogState
             onChanged: (player) {
               setState(() {
                 _selectedNonStriker = player;
+                // If the new non-striker is the same as the striker, reset the striker.
+                if (_selectedNonStriker != null &&
+                    _selectedNonStriker!.id == _selectedStriker?.id) {
+                  _selectedStriker = null;
+                }
               });
             },
           ),
