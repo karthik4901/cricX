@@ -1,3 +1,4 @@
+import 'package:cricx/features/match_setup/widgets/smart_roster_input.dart';
 import 'package:cricx/features/scoring/models/match_state.dart';
 import 'package:cricx/features/scoring/providers/match_state_provider.dart';
 import 'package:cricx/features/scoring/widgets/select_opening_players_dialog.dart';
@@ -19,10 +20,8 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
   DateTime? _selectedDate;
   final _teamAController = TextEditingController();
   final _teamBController = TextEditingController();
-  final List<TextEditingController> _teamAPlayerControllers =
-      List.generate(11, (_) => TextEditingController());
-  final List<TextEditingController> _teamBPlayerControllers =
-      List.generate(11, (_) => TextEditingController());
+  final _teamARosterController = TextEditingController();
+  final _teamBRosterController = TextEditingController();
 
   final _uuid = const Uuid();
 
@@ -31,12 +30,8 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
     _locationController.dispose();
     _teamAController.dispose();
     _teamBController.dispose();
-    for (var controller in _teamAPlayerControllers) {
-      controller.dispose();
-    }
-    for (var controller in _teamBPlayerControllers) {
-      controller.dispose();
-    }
+    _teamARosterController.dispose();
+    _teamBRosterController.dispose();
     super.dispose();
   }
 
@@ -122,18 +117,7 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    ...List.generate(
-                        11,
-                        (index) => Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4.0),
-                              child: TextField(
-                                controller: _teamAPlayerControllers[index],
-                                decoration: InputDecoration(
-                                  labelText: 'Player ${index + 1}',
-                                  border: const OutlineInputBorder(),
-                                ),
-                              ),
-                            )),
+                    SmartRosterInput(controller: _teamARosterController),
                   ],
                 ),
               ),
@@ -158,18 +142,7 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    ...List.generate(
-                        11,
-                        (index) => Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4.0),
-                              child: TextField(
-                                controller: _teamBPlayerControllers[index],
-                                decoration: InputDecoration(
-                                  labelText: 'Player ${index + 1}',
-                                  border: const OutlineInputBorder(),
-                                ),
-                              ),
-                            )),
+                    SmartRosterInput(controller: _teamBRosterController),
                   ],
                 ),
               ),
@@ -191,23 +164,19 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
                     ? _teamBController.text
                     : 'Team B';
 
-                final teamAPlayers = _teamAPlayerControllers.map((controller) {
-                  return Player(
-                    id: _uuid.v4(),
-                    name: controller.text.isNotEmpty
-                        ? controller.text
-                        : 'Player',
-                  );
-                }).toList();
+                final teamAPlayers = _teamARosterController.text
+                    .split(',')
+                    .map((name) => name.trim())
+                    .where((name) => name.isNotEmpty)
+                    .map((name) => Player(id: _uuid.v4(), name: name))
+                    .toList();
 
-                final teamBPlayers = _teamBPlayerControllers.map((controller) {
-                  return Player(
-                    id: _uuid.v4(),
-                    name: controller.text.isNotEmpty
-                        ? controller.text
-                        : 'Player',
-                  );
-                }).toList();
+                final teamBPlayers = _teamBRosterController.text
+                    .split(',')
+                    .map((name) => name.trim())
+                    .where((name) => name.isNotEmpty)
+                    .map((name) => Player(id: _uuid.v4(), name: name))
+                    .toList();
 
                 ref.read(matchStateProvider.notifier).addPlayers(
                       teamAPlayers: teamAPlayers,
