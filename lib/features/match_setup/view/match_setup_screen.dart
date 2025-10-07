@@ -65,72 +65,115 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextField(
-              controller: _locationController,
-              decoration: const InputDecoration(
-                labelText: 'Location',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            GestureDetector(
-              onTap: () => _selectDate(context),
-              child: AbsorbPointer(
-                child: TextField(
-                  decoration: InputDecoration(
-                    labelText: _selectedDate == null
-                        ? 'Match Date'
-                        : DateFormat.yMMMd().format(_selectedDate!),
-                    border: const OutlineInputBorder(),
-                    suffixIcon: const Icon(Icons.calendar_today),
-                  ),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Match Details',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _locationController,
+                      decoration: const InputDecoration(
+                        labelText: 'Location',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    GestureDetector(
+                      onTap: () => _selectDate(context),
+                      child: AbsorbPointer(
+                        child: TextField(
+                          decoration: InputDecoration(
+                            labelText: _selectedDate == null
+                                ? 'Match Date'
+                                : DateFormat.yMMMd().format(_selectedDate!),
+                            border: const OutlineInputBorder(),
+                            suffixIcon: const Icon(Icons.calendar_today),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: 24),
-            TextField(
-              controller: _teamAController,
-              decoration: const InputDecoration(
-                labelText: 'Team A Name',
-                border: OutlineInputBorder(),
+            const SizedBox(height: 16),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Team A Roster',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _teamAController,
+                      decoration: const InputDecoration(
+                        labelText: 'Team A Name',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ...List.generate(
+                        11,
+                        (index) => Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4.0),
+                              child: TextField(
+                                controller: _teamAPlayerControllers[index],
+                                decoration: InputDecoration(
+                                  labelText: 'Player ${index + 1}',
+                                  border: const OutlineInputBorder(),
+                                ),
+                              ),
+                            )),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 16),
-            Text('Team A Players', style: Theme.of(context).textTheme.titleMedium),
-            ...List.generate(
-                11,
-                (index) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4.0),
-                      child: TextField(
-                        controller: _teamAPlayerControllers[index],
-                        decoration: InputDecoration(
-                          labelText: 'Player ${index + 1}',
-                          border: const OutlineInputBorder(),
-                        ),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Team B Roster',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _teamBController,
+                      decoration: const InputDecoration(
+                        labelText: 'Team B Name',
+                        border: OutlineInputBorder(),
                       ),
-                    )),
-            const SizedBox(height: 24),
-            TextField(
-              controller: _teamBController,
-              decoration: const InputDecoration(
-                labelText: 'Team B Name',
-                border: OutlineInputBorder(),
+                    ),
+                    const SizedBox(height: 16),
+                    ...List.generate(
+                        11,
+                        (index) => Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4.0),
+                              child: TextField(
+                                controller: _teamBPlayerControllers[index],
+                                decoration: InputDecoration(
+                                  labelText: 'Player ${index + 1}',
+                                  border: const OutlineInputBorder(),
+                                ),
+                              ),
+                            )),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 16),
-            Text('Team B Players', style: Theme.of(context).textTheme.titleMedium),
-            ...List.generate(
-                11,
-                (index) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4.0),
-                      child: TextField(
-                        controller: _teamBPlayerControllers[index],
-                        decoration: InputDecoration(
-                          labelText: 'Player ${index + 1}',
-                          border: const OutlineInputBorder(),
-                        ),
-                      ),
-                    )),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () async {
