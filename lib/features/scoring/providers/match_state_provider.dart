@@ -1,12 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import '../models/match_state.dart';
+import '../../../services/persistence_service.dart';
 
 /// MatchStateNotifier is responsible for managing the state of a cricket match.
 /// It acts as the "brain" that controls how the match state can change over time.
 /// This class handles all the logic for updating scores, wickets, overs, etc.
 class MatchStateNotifier extends StateNotifier<MatchState> {
   final List<MatchState> _history = [];
+  final PersistenceService _persistenceService = PersistenceService();
 
   /// Creates a new MatchStateNotifier with initial default values.
   MatchStateNotifier()
@@ -32,6 +34,11 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
           ),
         );
 
+  /// Creates a MatchStateNotifier with a provided initial state.
+  MatchStateNotifier.fromState(MatchState initialState) : super(initialState) {
+    _persistenceService.saveMatchState(initialState);
+  }
+
   // Helper to update a player in a list immutably
   List<Player> _updatePlayerInList(List<Player> players, Player updatedPlayer) {
     return players.map((p) => p.id == updatedPlayer.id ? updatedPlayer : p).toList();
@@ -49,6 +56,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       matchDate: matchDate,
       location: location,
     );
+    _persistenceService.saveMatchState(state);
   }
 
   void addPlayers({
@@ -78,6 +86,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       matchDate: state.matchDate,
       location: state.location,
     );
+    _persistenceService.saveMatchState(state);
   }
 
   void setOpeningPlayers({
@@ -96,12 +105,13 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       matchDate: state.matchDate,
       location: state.location,
     );
+    _persistenceService.saveMatchState(state);
   }
 
   void addRuns(int runs) {
     _history.add(state);
 
-    if (state.striker == null) return; // Safety check
+    if (state.striker == null || state.bowler == null) return; // Safety check
 
     // Update striker stats
     final updatedStriker = state.striker!.copyWith(
@@ -111,10 +121,24 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       sixes: runs == 6 ? state.striker!.sixes + 1 : state.striker!.sixes,
     );
 
+    // Update bowler stats
+    // Calculate new oversBowled value, handling the transition from .5 to the next whole over
+    double newOversBowled = state.bowler!.oversBowled + 0.1; // Add 1 ball (0.1 overs)
+    if (newOversBowled.toStringAsFixed(1).endsWith('.6')) {
+      // If we have 6 balls, increment to the next over
+      newOversBowled = newOversBowled.floorToDouble() + 1.0;
+    }
+
+    final updatedBowler = state.bowler!.copyWith(
+      oversBowled: newOversBowled,
+      runsConceded: state.bowler!.runsConceded + runs,
+    );
+
     if (state.currentInnings == 1) {
       final newBalls = state.teamAInnings.balls + 1;
       final newOvers = state.teamAInnings.overs + (newBalls == 6 ? 1 : 0);
-      final updatedPlayers = _updatePlayerInList(state.teamAInnings.players, updatedStriker);
+      final updatedBattingPlayers = _updatePlayerInList(state.teamAInnings.players, updatedStriker);
+      final updatedBowlingPlayers = _updatePlayerInList(state.teamBInnings.players, updatedBowler);
 
       state = MatchState(
         teamAInnings: TeamInnings(
@@ -122,34 +146,47 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
           wickets: state.teamAInnings.wickets,
           overs: newOvers,
           balls: newBalls % 6,
-          players: updatedPlayers,
+          players: updatedBattingPlayers,
         ),
-        teamBInnings: state.teamBInnings,
+        teamBInnings: TeamInnings(
+          score: state.teamBInnings.score,
+          wickets: state.teamBInnings.wickets,
+          overs: state.teamBInnings.overs,
+          balls: state.teamBInnings.balls,
+          players: updatedBowlingPlayers,
+        ),
         currentInnings: state.currentInnings,
         striker: updatedStriker,
         nonStriker: state.nonStriker,
-        bowler: state.bowler,
+        bowler: updatedBowler,
         matchDate: state.matchDate,
         location: state.location,
       );
     } else {
       final newBalls = state.teamBInnings.balls + 1;
       final newOvers = state.teamBInnings.overs + (newBalls == 6 ? 1 : 0);
-      final updatedPlayers = _updatePlayerInList(state.teamBInnings.players, updatedStriker);
+      final updatedBattingPlayers = _updatePlayerInList(state.teamBInnings.players, updatedStriker);
+      final updatedBowlingPlayers = _updatePlayerInList(state.teamAInnings.players, updatedBowler);
 
       state = MatchState(
-        teamAInnings: state.teamAInnings,
+        teamAInnings: TeamInnings(
+          score: state.teamAInnings.score,
+          wickets: state.teamAInnings.wickets,
+          overs: state.teamAInnings.overs,
+          balls: state.teamAInnings.balls,
+          players: updatedBowlingPlayers,
+        ),
         teamBInnings: TeamInnings(
           score: state.teamBInnings.score + runs,
           wickets: state.teamBInnings.wickets,
           overs: newOvers,
           balls: newBalls % 6,
-          players: updatedPlayers,
+          players: updatedBattingPlayers,
         ),
         currentInnings: state.currentInnings,
         striker: updatedStriker,
         nonStriker: state.nonStriker,
-        bowler: state.bowler,
+        bowler: updatedBowler,
         matchDate: state.matchDate,
         location: state.location,
       );
@@ -169,6 +206,9 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         : state.teamBInnings.overs > 0)) {
       _rotateStrike();
     }
+
+    // Save the updated state
+    _persistenceService.saveMatchState(state);
   }
 
   void recordWicket() {
@@ -177,8 +217,16 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
     if (state.bowler == null) return; // Safety check
 
     // Update bowler stats
+    // Calculate new oversBowled value, handling the transition from .5 to the next whole over
+    double newOversBowled = state.bowler!.oversBowled + 0.1; // Add 1 ball (0.1 overs)
+    if (newOversBowled.toStringAsFixed(1).endsWith('.6')) {
+      // If we have 6 balls, increment to the next over
+      newOversBowled = newOversBowled.floorToDouble() + 1.0;
+    }
+
     final updatedBowler = state.bowler!.copyWith(
       wicketsTaken: state.bowler!.wicketsTaken + 1,
+      oversBowled: newOversBowled,
     );
 
     if (state.currentInnings == 1) {
@@ -236,6 +284,9 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         location: state.location,
       );
     }
+
+    // Save the updated state
+    _persistenceService.saveMatchState(state);
   }
 
   void recordExtra({required ExtraType type, int runs = 1}) {
@@ -244,8 +295,19 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
     if (type == ExtraType.wide || type == ExtraType.noBall) {
       if (state.bowler == null) return; // Safety check
 
+      // Calculate new oversBowled value for no-balls, handling the transition from .5 to the next whole over
+      double newOversBowled = state.bowler!.oversBowled;
+      if (type == ExtraType.noBall) {
+        newOversBowled += 0.1; // Add 1 ball (0.1 overs) for no-balls only
+        if (newOversBowled.toStringAsFixed(1).endsWith('.6')) {
+          // If we have 6 balls, increment to the next over
+          newOversBowled = newOversBowled.floorToDouble() + 1.0;
+        }
+      }
+
       final updatedBowler = state.bowler!.copyWith(
         runsConceded: state.bowler!.runsConceded + runs,
+        oversBowled: newOversBowled,
       );
 
       if (state.currentInnings == 1) {
@@ -261,6 +323,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
           matchDate: state.matchDate,
           location: state.location,
         );
+        _persistenceService.saveMatchState(state);
       } else {
         // Team B batting, Team A bowling
         final updatedBowlingTeamPlayers = _updatePlayerInList(state.teamAInnings.players, updatedBowler);
@@ -274,11 +337,13 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
           matchDate: state.matchDate,
           location: state.location,
         );
+        _persistenceService.saveMatchState(state);
       }
     } else if (type == ExtraType.bye || type == ExtraType.legBye) {
       // Note: This currently incorrectly assigns runs to the striker.
       // A future refactoring is needed to handle this properly.
       addRuns(runs);
+      // No need to save state here as addRuns already does it
     }
   }
 
@@ -301,6 +366,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
   void undoLastAction() {
     if (_history.isNotEmpty) {
       state = _history.removeLast();
+      _persistenceService.saveMatchState(state);
     }
   }
 }
@@ -325,7 +391,16 @@ extension on TeamInnings {
   }
 }
 
+/// The default match state provider with a new match state
 final matchStateProvider =
     StateNotifierProvider<MatchStateNotifier, MatchState>((ref) {
   return MatchStateNotifier();
 });
+
+/// A provider that creates a MatchStateNotifier with a saved match state
+final savedMatchStateProvider = Provider<MatchState?>((ref) => null);
+
+/// A provider that creates a MatchStateNotifier with the provided initial state
+final loadedMatchStateProvider = StateNotifierProviderFamily<MatchStateNotifier, MatchState, MatchState>(
+  (ref, initialState) => MatchStateNotifier.fromState(initialState),
+);

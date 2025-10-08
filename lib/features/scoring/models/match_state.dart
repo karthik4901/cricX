@@ -54,6 +54,38 @@ class Player {
       maidens: maidens ?? this.maidens,
     );
   }
+
+  /// Converts a Player object to a JSON map.
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'runsScored': runsScored,
+      'ballsFaced': ballsFaced,
+      'fours': fours,
+      'sixes': sixes,
+      'wicketsTaken': wicketsTaken,
+      'oversBowled': oversBowled,
+      'runsConceded': runsConceded,
+      'maidens': maidens,
+    };
+  }
+
+  /// Creates a Player object from a JSON map.
+  factory Player.fromJson(Map<String, dynamic> json) {
+    return Player(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      runsScored: json['runsScored'] as int,
+      ballsFaced: json['ballsFaced'] as int,
+      fours: json['fours'] as int,
+      sixes: json['sixes'] as int,
+      wicketsTaken: json['wicketsTaken'] as int,
+      oversBowled: json['oversBowled'] as double,
+      runsConceded: json['runsConceded'] as int,
+      maidens: json['maidens'] as int,
+    );
+  }
 }
 
 class TeamInnings {
@@ -70,6 +102,30 @@ class TeamInnings {
     required this.balls,
     required this.players,
   });
+
+  /// Converts a TeamInnings object to a JSON map.
+  Map<String, dynamic> toJson() {
+    return {
+      'score': score,
+      'wickets': wickets,
+      'overs': overs,
+      'balls': balls,
+      'players': players.map((player) => player.toJson()).toList(),
+    };
+  }
+
+  /// Creates a TeamInnings object from a JSON map.
+  factory TeamInnings.fromJson(Map<String, dynamic> json) {
+    return TeamInnings(
+      score: json['score'] as int,
+      wickets: json['wickets'] as int,
+      overs: json['overs'] as int,
+      balls: json['balls'] as int,
+      players: (json['players'] as List)
+          .map((playerJson) => Player.fromJson(playerJson as Map<String, dynamic>))
+          .toList(),
+    );
+  }
 }
 
 class MatchState {
@@ -92,4 +148,38 @@ class MatchState {
     required this.matchDate,
     required this.location,
   });
+
+  /// Converts a MatchState object to a JSON map.
+  Map<String, dynamic> toJson() {
+    return {
+      'teamAInnings': teamAInnings.toJson(),
+      'teamBInnings': teamBInnings.toJson(),
+      'currentInnings': currentInnings,
+      'striker': striker?.toJson(),
+      'nonStriker': nonStriker?.toJson(),
+      'bowler': bowler?.toJson(),
+      'matchDate': matchDate.toIso8601String(),
+      'location': location,
+    };
+  }
+
+  /// Creates a MatchState object from a JSON map.
+  factory MatchState.fromJson(Map<String, dynamic> json) {
+    return MatchState(
+      teamAInnings: TeamInnings.fromJson(json['teamAInnings'] as Map<String, dynamic>),
+      teamBInnings: TeamInnings.fromJson(json['teamBInnings'] as Map<String, dynamic>),
+      currentInnings: json['currentInnings'] as int,
+      striker: json['striker'] != null 
+          ? Player.fromJson(json['striker'] as Map<String, dynamic>) 
+          : null,
+      nonStriker: json['nonStriker'] != null 
+          ? Player.fromJson(json['nonStriker'] as Map<String, dynamic>) 
+          : null,
+      bowler: json['bowler'] != null 
+          ? Player.fromJson(json['bowler'] as Map<String, dynamic>) 
+          : null,
+      matchDate: DateTime.parse(json['matchDate'] as String),
+      location: json['location'] as String,
+    );
+  }
 }
