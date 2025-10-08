@@ -12,39 +12,25 @@ class BatsmanScorecard extends ConsumerWidget {
     final striker = matchState.striker;
     final nonStriker = matchState.nonStriker;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-      child: Column(
-        children: [
-          _buildPlayerScoreRow(context, striker, isStriker: true),
-          const SizedBox(height: 8),
-          _buildPlayerScoreRow(context, nonStriker, isStriker: false),
-        ],
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildPlayerScoreRow(context, striker, isStriker: true),
+            const Divider(height: 24),
+            _buildPlayerScoreRow(context, nonStriker, isStriker: false),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildPlayerScoreRow(BuildContext context, Player? player, {required bool isStriker}) {
     final textTheme = Theme.of(context).textTheme;
-
-    if (player == null) {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            isStriker ? 'Striker' : 'Non-Striker',
-            style: textTheme.titleMedium?.copyWith(color: Colors.grey),
-          ),
-          Text(
-            '-',
-            style: textTheme.bodyLarge?.copyWith(color: Colors.grey),
-          ),
-        ],
-      );
-    }
-
-    final playerName = isStriker ? '${player.name}*' : player.name;
-    final scoreString = '${player.runsScored} (${player.ballsFaced})';
+    final scoreString = player != null ? '${player.runsScored} (${player.ballsFaced})' : '-';
+    final playerName = player != null ? (isStriker ? '${player.name}*': player.name) : (isStriker ? 'Striker' : 'Non-Striker');
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -60,7 +46,7 @@ class BatsmanScorecard extends ConsumerWidget {
           },
           child: Text(
             scoreString,
-            key: ValueKey<String>(scoreString), // Crucial for AnimatedSwitcher to detect change
+            key: ValueKey<String>(scoreString + (player?.id ?? '')), // Unique key for animation
             style: textTheme.bodyLarge,
           ),
         ),
