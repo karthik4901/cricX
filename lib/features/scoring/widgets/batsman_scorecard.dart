@@ -29,25 +29,51 @@ class BatsmanScorecard extends ConsumerWidget {
 
   Widget _buildPlayerScoreRow(BuildContext context, Player? player, {required bool isStriker}) {
     final textTheme = Theme.of(context).textTheme;
-    final scoreString = player != null ? '${player.runsScored} (${player.ballsFaced})' : '-';
+    final runs = player != null ? '${player.runsScored}' : '-';
+    final balls = player != null ? '(${player.ballsFaced})' : '(-)';
     final playerName = player != null ? (isStriker ? '${player.name}*': player.name) : (isStriker ? 'Striker' : 'Non-Striker');
 
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          playerName,
-          style: textTheme.titleMedium,
-        ),
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          transitionBuilder: (Widget child, Animation<double> animation) {
-            return FadeTransition(opacity: animation, child: child);
-          },
+        // Player name (left-aligned)
+        Expanded(
+          flex: 3,
           child: Text(
-            scoreString,
-            key: ValueKey<String>(scoreString + (player?.id ?? '')), // Unique key for animation
-            style: textTheme.bodyLarge,
+            playerName,
+            style: textTheme.titleMedium,
+            textAlign: TextAlign.left,
+          ),
+        ),
+        // Runs (right-aligned)
+        Expanded(
+          flex: 1,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+            child: Text(
+              runs,
+              key: ValueKey<String>('runs-${player?.id ?? ''}'), // Unique key for animation
+              style: textTheme.bodyLarge,
+              textAlign: TextAlign.right,
+            ),
+          ),
+        ),
+        // Balls faced (left-aligned)
+        Expanded(
+          flex: 1,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+            child: Text(
+              balls,
+              key: ValueKey<String>('balls-${player?.id ?? ''}'), // Unique key for animation
+              style: textTheme.bodyLarge,
+              textAlign: TextAlign.left,
+            ),
           ),
         ),
       ],

@@ -154,6 +154,21 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         location: state.location,
       );
     }
+
+    // Rotate strike if runs are odd (1 or 3)
+    if (runs == 1 || runs == 3) {
+      _rotateStrike();
+    }
+
+    // Rotate strike at the end of an over
+    final currentBalls = state.currentInnings == 1 
+        ? state.teamAInnings.balls 
+        : state.teamBInnings.balls;
+    if (currentBalls == 0 && (state.currentInnings == 1 
+        ? state.teamAInnings.overs > 0 
+        : state.teamBInnings.overs > 0)) {
+      _rotateStrike();
+    }
   }
 
   void recordWicket() {
@@ -265,6 +280,22 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       // A future refactoring is needed to handle this properly.
       addRuns(runs);
     }
+  }
+
+  // Swaps the striker and nonStriker players
+  void _rotateStrike() {
+    if (state.striker == null || state.nonStriker == null) return; // Safety check
+
+    state = MatchState(
+      teamAInnings: state.teamAInnings,
+      teamBInnings: state.teamBInnings,
+      currentInnings: state.currentInnings,
+      striker: state.nonStriker,
+      nonStriker: state.striker,
+      bowler: state.bowler,
+      matchDate: state.matchDate,
+      location: state.location,
+    );
   }
 
   void undoLastAction() {
