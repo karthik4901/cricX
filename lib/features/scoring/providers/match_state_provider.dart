@@ -211,6 +211,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
     _persistenceService.saveMatchState(state);
   }
 
+  // This method is kept for backward compatibility
   void recordWicket() {
     _history.add(state);
 
@@ -279,6 +280,187 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         currentInnings: state.currentInnings,
         striker: state.striker, // This will be replaced by the new batsman
         nonStriker: state.nonStriker,
+        bowler: updatedBowler,
+        matchDate: state.matchDate,
+        location: state.location,
+      );
+    }
+
+    // Save the updated state
+    _persistenceService.saveMatchState(state);
+  }
+
+  // This method is kept for backward compatibility
+  void handleWicketDismissal({
+    required DismissalType dismissalType,
+    required Player nextBatsman,
+    Player? fielder,
+  }) {
+    // Create a local variable to fix the reference to newBatsman
+    final newBatsman = nextBatsman;
+    _history.add(state);
+
+    if (state.striker == null || state.nonStriker == null || state.bowler == null) return; // Safety check
+
+    // Update bowler stats
+    // Calculate new oversBowled value, handling the transition from .5 to the next whole over
+    double newOversBowled = state.bowler!.oversBowled + 0.1; // Add 1 ball (0.1 overs)
+    if (newOversBowled.toStringAsFixed(1).endsWith('.6')) {
+      // If we have 6 balls, increment to the next over
+      newOversBowled = newOversBowled.floorToDouble() + 1.0;
+    }
+
+    final updatedBowler = state.bowler!.copyWith(
+      wicketsTaken: state.bowler!.wicketsTaken + 1,
+      oversBowled: newOversBowled,
+    );
+
+    // In this method, we always assume the striker is dismissed
+    final bool isStrikerDismissed = true;
+
+    if (state.currentInnings == 1) {
+      // Team A is batting, Team B is bowling
+      final newBalls = state.teamAInnings.balls + 1;
+      final newOvers = state.teamAInnings.overs + (newBalls == 6 ? 1 : 0);
+      final updatedBowlingTeamPlayers = _updatePlayerInList(state.teamBInnings.players, updatedBowler);
+
+      state = MatchState(
+        teamAInnings: TeamInnings(
+          score: state.teamAInnings.score,
+          wickets: state.teamAInnings.wickets + 1,
+          overs: newOvers,
+          balls: newBalls % 6,
+          players: state.teamAInnings.players,
+        ),
+        teamBInnings: TeamInnings(
+            score: state.teamBInnings.score,
+            wickets: state.teamBInnings.wickets,
+            overs: state.teamBInnings.overs,
+            balls: state.teamBInnings.balls,
+            players: updatedBowlingTeamPlayers),
+        currentInnings: state.currentInnings,
+        striker: isStrikerDismissed ? nextBatsman : state.striker,
+        nonStriker: isStrikerDismissed ? state.nonStriker : nextBatsman,
+        bowler: updatedBowler,
+        matchDate: state.matchDate,
+        location: state.location,
+      );
+    } else {
+      // Team B is batting, Team A is bowling
+      final newBalls = state.teamBInnings.balls + 1;
+      final newOvers = state.teamBInnings.overs + (newBalls == 6 ? 1 : 0);
+      final updatedBowlingTeamPlayers = _updatePlayerInList(state.teamAInnings.players, updatedBowler);
+
+      state = MatchState(
+        teamAInnings: TeamInnings(
+            score: state.teamAInnings.score,
+            wickets: state.teamAInnings.wickets,
+            overs: state.teamAInnings.overs,
+            balls: state.teamAInnings.balls,
+            players: updatedBowlingTeamPlayers),
+        teamBInnings: TeamInnings(
+          score: state.teamBInnings.score,
+          wickets: state.teamBInnings.wickets + 1,
+          overs: newOvers,
+          balls: newBalls % 6,
+          players: state.teamBInnings.players,
+        ),
+        currentInnings: state.currentInnings,
+        striker: isStrikerDismissed ? newBatsman : state.striker,
+        nonStriker: isStrikerDismissed ? state.nonStriker : newBatsman,
+        bowler: updatedBowler,
+        matchDate: state.matchDate,
+        location: state.location,
+      );
+    }
+
+    // Save the updated state
+    _persistenceService.saveMatchState(state);
+  }
+
+  /// Advanced method to handle a wicket dismissal.
+  /// 
+  /// This method allows specifying which batsman (striker or non-striker) is being dismissed.
+  /// 
+  /// Parameters:
+  /// - dismissedBatsman: The batsman who is being dismissed (either striker or non-striker)
+  /// - dismissalType: The type of dismissal (bowled, caught, lbw, etc.)
+  /// - newBatsman: The new batsman who will replace the dismissed batsman
+  void handleWicketDismissalAdvanced({
+    required Player dismissedBatsman,
+    required DismissalType dismissalType,
+    required Player newBatsman,
+  }) {
+    _history.add(state);
+
+    if (state.striker == null || state.nonStriker == null || state.bowler == null) return; // Safety check
+
+    // Update bowler stats
+    // Calculate new oversBowled value, handling the transition from .5 to the next whole over
+    double newOversBowled = state.bowler!.oversBowled + 0.1; // Add 1 ball (0.1 overs)
+    if (newOversBowled.toStringAsFixed(1).endsWith('.6')) {
+      // If we have 6 balls, increment to the next over
+      newOversBowled = newOversBowled.floorToDouble() + 1.0;
+    }
+
+    final updatedBowler = state.bowler!.copyWith(
+      wicketsTaken: state.bowler!.wicketsTaken + 1,
+      oversBowled: newOversBowled,
+    );
+
+    // Determine if the striker or non-striker was dismissed
+    final bool isStrikerDismissed = dismissedBatsman.id == state.striker!.id;
+
+    if (state.currentInnings == 1) {
+      // Team A is batting, Team B is bowling
+      final newBalls = state.teamAInnings.balls + 1;
+      final newOvers = state.teamAInnings.overs + (newBalls == 6 ? 1 : 0);
+      final updatedBowlingTeamPlayers = _updatePlayerInList(state.teamBInnings.players, updatedBowler);
+
+      state = MatchState(
+        teamAInnings: TeamInnings(
+          score: state.teamAInnings.score,
+          wickets: state.teamAInnings.wickets + 1,
+          overs: newOvers,
+          balls: newBalls % 6,
+          players: state.teamAInnings.players,
+        ),
+        teamBInnings: TeamInnings(
+            score: state.teamBInnings.score,
+            wickets: state.teamBInnings.wickets,
+            overs: state.teamBInnings.overs,
+            balls: state.teamBInnings.balls,
+            players: updatedBowlingTeamPlayers),
+        currentInnings: state.currentInnings,
+        striker: isStrikerDismissed ? newBatsman : state.striker,
+        nonStriker: isStrikerDismissed ? state.nonStriker : newBatsman,
+        bowler: updatedBowler,
+        matchDate: state.matchDate,
+        location: state.location,
+      );
+    } else {
+      // Team B is batting, Team A is bowling
+      final newBalls = state.teamBInnings.balls + 1;
+      final newOvers = state.teamBInnings.overs + (newBalls == 6 ? 1 : 0);
+      final updatedBowlingTeamPlayers = _updatePlayerInList(state.teamAInnings.players, updatedBowler);
+
+      state = MatchState(
+        teamAInnings: TeamInnings(
+            score: state.teamAInnings.score,
+            wickets: state.teamAInnings.wickets,
+            overs: state.teamAInnings.overs,
+            balls: state.teamAInnings.balls,
+            players: updatedBowlingTeamPlayers),
+        teamBInnings: TeamInnings(
+          score: state.teamBInnings.score,
+          wickets: state.teamBInnings.wickets + 1,
+          overs: newOvers,
+          balls: newBalls % 6,
+          players: state.teamBInnings.players,
+        ),
+        currentInnings: state.currentInnings,
+        striker: isStrikerDismissed ? newBatsman : state.striker,
+        nonStriker: isStrikerDismissed ? state.nonStriker : newBatsman,
         bowler: updatedBowler,
         matchDate: state.matchDate,
         location: state.location,

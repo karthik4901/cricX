@@ -1,5 +1,13 @@
 enum ExtraType { wide, noBall, bye, legBye }
 
+enum DismissalType {
+  bowled,
+  caught,
+  lbw,
+  runOut,
+  stumped,
+}
+
 class Player {
   final String id;
   final String name;

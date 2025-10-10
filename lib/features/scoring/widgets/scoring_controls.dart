@@ -2,6 +2,7 @@ import 'package:cricx/features/scoring/models/match_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/match_state_provider.dart';
+import '../widgets/fall_of_wicket_dialog.dart';
 
 // A private stateful widget to manage the button's animation state.
 class _AnimatedRunButton extends StatefulWidget {
@@ -134,9 +135,92 @@ class ScoringControls extends ConsumerWidget {
 
   Widget _buildActionButton(BuildContext context, String label, WidgetRef ref) {
     return OutlinedButton(
-      onPressed: () {
+      onPressed: () async {
         if (label == 'Wicket') {
-          ref.read(matchStateProvider.notifier).recordWicket();
+          final matchState = ref.read(matchStateProvider);
+
+          // Determine which team is batting and which is bowling
+          final List<Player> battingTeam;
+          final List<Player> bowlingTeam;
+
+          if (matchState.currentInnings == 1) {
+            // Team A is batting, Team B is bowling
+            battingTeam = matchState.teamAInnings.players;
+            bowlingTeam = matchState.teamBInnings.players;
+          } else {
+            // Team B is batting, Team A is bowling
+            battingTeam = matchState.teamBInnings.players;
+            bowlingTeam = matchState.teamAInnings.players;
+          }
+
+          // Get the list of remaining batsmen (exclude current striker and non-striker)
+          final List<Player> remainingBatsmen = battingTeam
+              .where((player) => 
+                  player.id != matchState.striker?.id && 
+                  player.id != matchState.nonStriker?.id)
+              .toList();
+
+          // Show the FallOfWicketDialog
+          final dismissalDetails = await showDialog<Map<String, dynamic>>(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return FallOfWicketDialog(
+                remainingBatsmen: remainingBatsmen,
+                fieldingTeam: bowlingTeam,
+              );
+            },
+          );
+
+          // Process the result from the dialog
+          if (dismissalDetails != null) {
+            // By default, we assume the striker is out (most common case)
+            Player dismissedBatsman = matchState.striker!;
+
+            // Add a dialog or UI to let the user select which batsman is out
+            // For now, we'll assume the striker is out in most dismissal types
+            // except for run outs where we need to ask the user
+
+            if (dismissalDetails['dismissalType'] == DismissalType.runOut) {
+              // For run outs, we need to determine which batsman was out
+              // This would ideally be a UI selection, but for now we'll use a simple dialog
+              final isStrikerOut = await showDialog<bool>(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: const Text('Who was run out?'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ListTile(
+                          title: Text(matchState.striker!.name),
+                          subtitle: const Text('Striker'),
+                          onTap: () => Navigator.of(context).pop(true),
+                        ),
+                        ListTile(
+                          title: Text(matchState.nonStriker!.name),
+                          subtitle: const Text('Non-striker'),
+                          onTap: () => Navigator.of(context).pop(false),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+
+              // If the user selected the non-striker, update the dismissed batsman
+              if (isStrikerOut == false) {
+                dismissedBatsman = matchState.nonStriker!;
+              }
+            }
+
+            // Call the advanced method with the dismissed batsman information
+            ref.read(matchStateProvider.notifier).handleWicketDismissalAdvanced(
+              dismissedBatsman: dismissedBatsman,
+              dismissalType: dismissalDetails['dismissalType'] as DismissalType,
+              newBatsman: dismissalDetails['nextBatsman'] as Player,
+            );
+          }
         } else if (label == 'Extras') {
           showModalBottomSheet(
             context: context,
