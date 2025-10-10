@@ -340,10 +340,94 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         _persistenceService.saveMatchState(state);
       }
     } else if (type == ExtraType.bye || type == ExtraType.legBye) {
-      // Note: This currently incorrectly assigns runs to the striker.
-      // A future refactoring is needed to handle this properly.
-      addRuns(runs);
-      // No need to save state here as addRuns already does it
+      if (state.bowler == null) return; // Safety check
+
+      // Update bowler stats
+      double newOversBowled = state.bowler!.oversBowled + 0.1; // Add 1 ball (0.1 overs)
+      if (newOversBowled.toStringAsFixed(1).endsWith('.6')) {
+        // If we have 6 balls, increment to the next over
+        newOversBowled = newOversBowled.floorToDouble() + 1.0;
+      }
+
+      final updatedBowler = state.bowler!.copyWith(
+        oversBowled: newOversBowled,
+      );
+
+      if (state.currentInnings == 1) {
+        // Team A batting, Team B bowling
+        final newBalls = state.teamAInnings.balls + 1;
+        final newOvers = state.teamAInnings.overs + (newBalls == 6 ? 1 : 0);
+        final updatedBowlingTeamPlayers = _updatePlayerInList(state.teamBInnings.players, updatedBowler);
+
+        state = MatchState(
+          teamAInnings: TeamInnings(
+            score: state.teamAInnings.score + runs,
+            wickets: state.teamAInnings.wickets,
+            overs: newOvers,
+            balls: newBalls % 6,
+            players: state.teamAInnings.players,
+          ),
+          teamBInnings: TeamInnings(
+            score: state.teamBInnings.score,
+            wickets: state.teamBInnings.wickets,
+            overs: state.teamBInnings.overs,
+            balls: state.teamBInnings.balls,
+            players: updatedBowlingTeamPlayers,
+          ),
+          currentInnings: state.currentInnings,
+          striker: state.striker,
+          nonStriker: state.nonStriker,
+          bowler: updatedBowler,
+          matchDate: state.matchDate,
+          location: state.location,
+        );
+      } else {
+        // Team B batting, Team A bowling
+        final newBalls = state.teamBInnings.balls + 1;
+        final newOvers = state.teamBInnings.overs + (newBalls == 6 ? 1 : 0);
+        final updatedBowlingTeamPlayers = _updatePlayerInList(state.teamAInnings.players, updatedBowler);
+
+        state = MatchState(
+          teamAInnings: TeamInnings(
+            score: state.teamAInnings.score,
+            wickets: state.teamAInnings.wickets,
+            overs: state.teamAInnings.overs,
+            balls: state.teamAInnings.balls,
+            players: updatedBowlingTeamPlayers,
+          ),
+          teamBInnings: TeamInnings(
+            score: state.teamBInnings.score + runs,
+            wickets: state.teamBInnings.wickets,
+            overs: newOvers,
+            balls: newBalls % 6,
+            players: state.teamBInnings.players,
+          ),
+          currentInnings: state.currentInnings,
+          striker: state.striker,
+          nonStriker: state.nonStriker,
+          bowler: updatedBowler,
+          matchDate: state.matchDate,
+          location: state.location,
+        );
+      }
+
+      // Rotate strike if runs are odd (1 or 3)
+      if (runs == 1 || runs == 3) {
+        _rotateStrike();
+      }
+
+      // Rotate strike at the end of an over
+      final currentBalls = state.currentInnings == 1 
+          ? state.teamAInnings.balls 
+          : state.teamBInnings.balls;
+      if (currentBalls == 0 && (state.currentInnings == 1 
+          ? state.teamAInnings.overs > 0 
+          : state.teamBInnings.overs > 0)) {
+        _rotateStrike();
+      }
+
+      // Save the updated state
+      _persistenceService.saveMatchState(state);
     }
   }
 

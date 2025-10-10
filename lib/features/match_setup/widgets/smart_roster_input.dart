@@ -29,13 +29,6 @@ class _SmartRosterInputState extends ConsumerState<SmartRosterInput> {
         ),
         const SizedBox(height: 16),
         Container(), // Placeholder for player chips
-        const SizedBox(height: 16),
-        ElevatedButton(
-          onPressed: () {
-            // Logic to be added later
-          },
-          child: const Text('Confirm Team Roster'),
-        ),
       ],
     );
   }
