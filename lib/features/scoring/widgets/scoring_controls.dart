@@ -138,8 +138,10 @@ class ScoringControls extends ConsumerWidget {
       onPressed: () async {
         if (label == 'Wicket') {
           final matchState = ref.read(matchStateProvider);
+          final striker = matchState.striker;
+          final nonStriker = matchState.nonStriker;
 
-          // Determine which team is batting and which is bowling
+          // Determine which team is batting
           final List<Player> battingTeam;
           final List<Player> bowlingTeam;
 
@@ -156,8 +158,8 @@ class ScoringControls extends ConsumerWidget {
           // Get the list of remaining batsmen (exclude current striker and non-striker)
           final List<Player> remainingBatsmen = battingTeam
               .where((player) => 
-                  player.id != matchState.striker?.id && 
-                  player.id != matchState.nonStriker?.id)
+                  player.id != striker?.id && 
+                  player.id != nonStriker?.id)
               .toList();
 
           // Show the FallOfWicketDialog
@@ -174,49 +176,9 @@ class ScoringControls extends ConsumerWidget {
 
           // Process the result from the dialog
           if (dismissalDetails != null) {
-            // By default, we assume the striker is out (most common case)
-            Player dismissedBatsman = matchState.striker!;
-
-            // Add a dialog or UI to let the user select which batsman is out
-            // For now, we'll assume the striker is out in most dismissal types
-            // except for run outs where we need to ask the user
-
-            if (dismissalDetails['dismissalType'] == DismissalType.runOut) {
-              // For run outs, we need to determine which batsman was out
-              // This would ideally be a UI selection, but for now we'll use a simple dialog
-              final isStrikerOut = await showDialog<bool>(
-                context: context,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: const Text('Who was run out?'),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ListTile(
-                          title: Text(matchState.striker!.name),
-                          subtitle: const Text('Striker'),
-                          onTap: () => Navigator.of(context).pop(true),
-                        ),
-                        ListTile(
-                          title: Text(matchState.nonStriker!.name),
-                          subtitle: const Text('Non-striker'),
-                          onTap: () => Navigator.of(context).pop(false),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              );
-
-              // If the user selected the non-striker, update the dismissed batsman
-              if (isStrikerOut == false) {
-                dismissedBatsman = matchState.nonStriker!;
-              }
-            }
-
-            // Call the advanced method with the dismissed batsman information
-            ref.read(matchStateProvider.notifier).handleWicketDismissalAdvanced(
-              dismissedBatsman: dismissedBatsman,
+            // Call the handleWicketDismissal method with the correct parameters
+            ref.read(matchStateProvider.notifier).handleWicketDismissal(
+              dismissedBatsman: striker!,
               dismissalType: dismissalDetails['dismissalType'] as DismissalType,
               newBatsman: dismissalDetails['nextBatsman'] as Player,
             );
