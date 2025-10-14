@@ -18,6 +18,7 @@ class MatchSetupScreen extends ConsumerStatefulWidget {
 class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
   final _locationController = TextEditingController();
   DateTime? _selectedDate;
+  final _totalOversController = TextEditingController(text: '20'); // Default to 20 overs
   final _teamAController = TextEditingController();
   final _teamBController = TextEditingController();
   final _teamARosterController = TextEditingController();
@@ -28,6 +29,7 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
   @override
   void dispose() {
     _locationController.dispose();
+    _totalOversController.dispose();
     _teamAController.dispose();
     _teamBController.dispose();
     _teamARosterController.dispose();
@@ -93,6 +95,15 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _totalOversController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Total Overs',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -152,10 +163,11 @@ class _MatchSetupScreenState extends ConsumerState<MatchSetupScreen> {
               onPressed: () async {
                 final location = _locationController.text;
                 final matchDate = _selectedDate ?? DateTime.now();
+                final totalOvers = int.tryParse(_totalOversController.text) ?? 20; // Default to 20 if invalid input
 
                 ref
                     .read(matchStateProvider.notifier)
-                    .setMatchMetadata(matchDate: matchDate, location: location);
+                    .setMatchMetadata(matchDate: matchDate, location: location, totalOvers: totalOvers);
 
                 final teamAName = _teamAController.text.isNotEmpty
                     ? _teamAController.text

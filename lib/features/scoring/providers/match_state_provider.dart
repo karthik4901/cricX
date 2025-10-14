@@ -44,7 +44,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
     return players.map((p) => p.id == updatedPlayer.id ? updatedPlayer : p).toList();
   }
 
-  void setMatchMetadata({required DateTime matchDate, required String location}) {
+  void setMatchMetadata({required DateTime matchDate, required String location, required int totalOvers}) {
     _history.add(state);
     state = MatchState(
       teamAInnings: state.teamAInnings,
@@ -55,6 +55,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       bowler: state.bowler,
       matchDate: matchDate,
       location: location,
+      totalOvers: totalOvers,
     );
     _persistenceService.saveMatchState(state);
   }

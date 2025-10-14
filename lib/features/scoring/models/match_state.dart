@@ -145,6 +145,7 @@ class MatchState {
   final Player? bowler;
   final DateTime matchDate;
   final String location;
+  final int totalOvers;
 
   const MatchState({
     required this.teamAInnings,
@@ -155,6 +156,7 @@ class MatchState {
     this.bowler,
     required this.matchDate,
     required this.location,
+    this.totalOvers = 20, // Default to 20 overs
   });
 
   /// Converts a MatchState object to a JSON map.
@@ -168,6 +170,7 @@ class MatchState {
       'bowler': bowler?.toJson(),
       'matchDate': matchDate.toIso8601String(),
       'location': location,
+      'totalOvers': totalOvers,
     };
   }
 
@@ -188,6 +191,7 @@ class MatchState {
           : null,
       matchDate: DateTime.parse(json['matchDate'] as String),
       location: json['location'] as String,
+      totalOvers: json.containsKey('totalOvers') ? json['totalOvers'] as int : 20, // Default to 20 overs if not specified
     );
   }
 }
