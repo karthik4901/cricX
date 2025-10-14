@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'roster_setup_screen.dart';
 
 /// First screen in the match setup wizard that collects basic match details.
 class MatchDetailsScreen extends ConsumerStatefulWidget {
@@ -73,23 +74,26 @@ class _MatchDetailsScreenState extends ConsumerState<MatchDetailsScreen> {
             FilledButton(
               onPressed: () {
                 // Read values from all text fields
-                final teamAName = _teamANameController.text;
-                final teamBName = _teamBNameController.text;
+                final teamAName = _teamANameController.text.isNotEmpty
+                    ? _teamANameController.text
+                    : 'Team A';
+                final teamBName = _teamBNameController.text.isNotEmpty
+                    ? _teamBNameController.text
+                    : 'Team B';
                 final totalOvers = int.tryParse(_totalOversController.text) ?? 20;
                 final location = _locationController.text;
 
                 // Navigate to RosterSetupScreen, passing the collected data
-                // Note: RosterSetupScreen is not yet created, so we're just preparing the navigation
-                // Navigator.of(context).push(
-                //   MaterialPageRoute(
-                //     builder: (context) => RosterSetupScreen(
-                //       teamAName: teamAName,
-                //       teamBName: teamBName,
-                //       totalOvers: totalOvers,
-                //       location: location,
-                //     ),
-                //   ),
-                // );
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => RosterSetupScreen(
+                      teamAName: teamAName,
+                      teamBName: teamBName,
+                      totalOvers: totalOvers,
+                      location: location,
+                    ),
+                  ),
+                );
               },
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),

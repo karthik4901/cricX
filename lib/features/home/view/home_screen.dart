@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../features/match_setup/view/match_setup_screen.dart';
+import '../../../features/match_setup/view/match_details_screen.dart';
 import '../../../features/scoring/view/scoring_screen.dart';
 import '../../../features/scoring/models/match_state.dart';
 import '../../../features/scoring/providers/match_state_provider.dart';
@@ -84,7 +84,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       onPressed: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (context) => const MatchSetupScreen(),
+                            builder: (context) => const MatchDetailsScreen(),
                           ),
                         );
                       },
