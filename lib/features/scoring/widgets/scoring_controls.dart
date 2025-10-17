@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/match_state_provider.dart';
 import '../widgets/fall_of_wicket_dialog.dart';
+import '../widgets/retire_batsman_dialog.dart';
 
 // A private stateful widget to manage the button's animation state.
 class _AnimatedRunButton extends StatefulWidget {
@@ -250,9 +251,54 @@ class ScoringControls extends ConsumerWidget {
                   ListTile(
                     leading: const Icon(Icons.healing),
                     title: const Text('Retired Hurt'),
-                    onTap: () {
-                      // Empty onTap callback as specified
+                    onTap: () async {
+                      // Close the bottom sheet
                       Navigator.pop(context);
+
+                      final matchState = ref.read(matchStateProvider);
+                      final striker = matchState.striker;
+                      final nonStriker = matchState.nonStriker;
+
+                      // Safety check
+                      if (striker == null || nonStriker == null) return;
+
+                      // Determine which team is batting
+                      final List<Player> battingTeam;
+                      if (matchState.currentInnings == 1) {
+                        // Team A is batting
+                        battingTeam = matchState.teamAInnings.players;
+                      } else {
+                        // Team B is batting
+                        battingTeam = matchState.teamBInnings.players;
+                      }
+
+                      // Get the list of remaining batsmen (exclude current striker and non-striker)
+                      final List<Player> remainingBatsmen = battingTeam
+                          .where((player) => 
+                              player.id != striker.id && 
+                              player.id != nonStriker.id)
+                          .toList();
+
+                      // Show the RetireBatsmanDialog
+                      final result = await showDialog<Map<String, dynamic>>(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (BuildContext context) {
+                          return RetireBatsmanDialog(
+                            striker: striker,
+                            nonStriker: nonStriker,
+                            remainingBatsmen: remainingBatsmen,
+                          );
+                        },
+                      );
+
+                      // Process the result from the dialog
+                      if (result != null) {
+                        ref.read(matchStateProvider.notifier).retireBatsman(
+                          retiringBatsman: result['retiringBatsman'] as Player,
+                          newBatsman: result['newBatsman'] as Player,
+                        );
+                      }
                     },
                   ),
                   ListTile(

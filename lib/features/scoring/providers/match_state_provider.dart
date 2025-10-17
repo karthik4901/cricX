@@ -645,6 +645,80 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
     }
   }
 
+  /// Handles a batsman retiring hurt.
+  /// 
+  /// This method updates the retiring batsman's status to PlayerStatus.retiredHurt
+  /// and replaces them in the active batting position with the new batsman.
+  /// 
+  /// Parameters:
+  /// - retiringBatsman: The batsman who is retiring hurt
+  /// - newBatsman: The new batsman who will replace the retiring batsman
+  void retireBatsman({
+    required Player retiringBatsman,
+    required Player newBatsman,
+  }) {
+    _history.add(state);
+
+    if (state.striker == null || state.nonStriker == null) return; // Safety check
+
+    // Update the retiring player's status to retiredHurt
+    final updatedRetiringBatsman = retiringBatsman.copyWith(
+      status: PlayerStatus.retiredHurt,
+    );
+
+    // Determine if the striker or non-striker is retiring
+    final bool isStrikerRetiring = retiringBatsman.id == state.striker!.id;
+
+    if (state.currentInnings == 1) {
+      // Team A is batting
+      // Update the batting team's players list with the updated retiring player
+      final updatedBattingTeamPlayers = _updatePlayerInList(state.teamAInnings.players, updatedRetiringBatsman);
+
+      state = MatchState(
+        teamAInnings: TeamInnings(
+          score: state.teamAInnings.score,
+          wickets: state.teamAInnings.wickets,
+          overs: state.teamAInnings.overs,
+          balls: state.teamAInnings.balls,
+          players: updatedBattingTeamPlayers,
+        ),
+        teamBInnings: state.teamBInnings,
+        currentInnings: state.currentInnings,
+        striker: isStrikerRetiring ? newBatsman : state.striker,
+        nonStriker: isStrikerRetiring ? state.nonStriker : newBatsman,
+        bowler: state.bowler,
+        matchDate: state.matchDate,
+        location: state.location,
+        totalOvers: state.totalOvers,
+      );
+    } else {
+      // Team B is batting
+      // Update the batting team's players list with the updated retiring player
+      final updatedBattingTeamPlayers = _updatePlayerInList(state.teamBInnings.players, updatedRetiringBatsman);
+
+      state = MatchState(
+        teamAInnings: state.teamAInnings,
+        teamBInnings: TeamInnings(
+          score: state.teamBInnings.score,
+          wickets: state.teamBInnings.wickets,
+          overs: state.teamBInnings.overs,
+          balls: state.teamBInnings.balls,
+          players: updatedBattingTeamPlayers,
+        ),
+        currentInnings: state.currentInnings,
+        striker: isStrikerRetiring ? newBatsman : state.striker,
+        nonStriker: isStrikerRetiring ? state.nonStriker : newBatsman,
+        bowler: state.bowler,
+        matchDate: state.matchDate,
+        location: state.location,
+        totalOvers: state.totalOvers,
+      );
+    }
+
+    // Save the updated state
+    _persistenceService.saveMatchState(state);
+  }
+
   /// Sets a new bowler for the current innings.
   /// This is used when a new over starts and a new bowler needs to be selected.
   void setBowler(Player bowler) {
