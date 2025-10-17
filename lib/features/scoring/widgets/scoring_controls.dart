@@ -126,6 +126,7 @@ class ScoringControls extends ConsumerWidget {
               _buildActionButton(context, 'Wicket', ref),
               _buildActionButton(context, 'Extras', ref),
               _buildActionButton(context, 'Undo', ref),
+              _buildActionButton(context, 'More', ref),
             ],
           ),
         ),
@@ -239,6 +240,33 @@ class ScoringControls extends ConsumerWidget {
           );
         } else if (label == 'Undo') {
           ref.read(matchStateProvider.notifier).undoLastAction();
+        } else if (label == 'More') {
+          showModalBottomSheet(
+            context: context,
+            builder: (BuildContext context) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.healing),
+                    title: const Text('Retired Hurt'),
+                    onTap: () {
+                      // Empty onTap callback as specified
+                      Navigator.pop(context);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.swap_horiz),
+                    title: const Text('Change Bowler (Mid-Over)'),
+                    onTap: () {
+                      // Empty onTap callback as specified
+                      Navigator.pop(context);
+                    },
+                  ),
+                ],
+              );
+            },
+          );
         }
       },
       style: OutlinedButton.styleFrom(
