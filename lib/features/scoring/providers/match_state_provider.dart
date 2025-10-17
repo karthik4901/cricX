@@ -328,6 +328,11 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       oversBowled: newOversBowled,
     );
 
+    // Update the dismissed player's status to out
+    final updatedDismissedBatsman = dismissedBatsman.copyWith(
+      status: PlayerStatus.out,
+    );
+
     // Determine if the striker or non-striker was dismissed
     final bool isStrikerDismissed = dismissedBatsman.id == state.striker!.id;
 
@@ -337,13 +342,16 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       final newOvers = state.teamAInnings.overs + (newBalls == 6 ? 1 : 0);
       final updatedBowlingTeamPlayers = _updatePlayerInList(state.teamBInnings.players, updatedBowler);
 
+      // Update the batting team's players list with the updated dismissed player
+      final updatedBattingTeamPlayers = _updatePlayerInList(state.teamAInnings.players, updatedDismissedBatsman);
+
       state = MatchState(
         teamAInnings: TeamInnings(
           score: state.teamAInnings.score,
           wickets: state.teamAInnings.wickets + 1,
           overs: newOvers,
           balls: newBalls % 6,
-          players: state.teamAInnings.players,
+          players: updatedBattingTeamPlayers,
         ),
         teamBInnings: TeamInnings(
             score: state.teamBInnings.score,
@@ -365,6 +373,9 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       final newOvers = state.teamBInnings.overs + (newBalls == 6 ? 1 : 0);
       final updatedBowlingTeamPlayers = _updatePlayerInList(state.teamAInnings.players, updatedBowler);
 
+      // Update the batting team's players list with the updated dismissed player
+      final updatedBattingTeamPlayers = _updatePlayerInList(state.teamBInnings.players, updatedDismissedBatsman);
+
       state = MatchState(
         teamAInnings: TeamInnings(
             score: state.teamAInnings.score,
@@ -377,7 +388,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
           wickets: state.teamBInnings.wickets + 1,
           overs: newOvers,
           balls: newBalls % 6,
-          players: state.teamBInnings.players,
+          players: updatedBattingTeamPlayers,
         ),
         currentInnings: state.currentInnings,
         striker: isStrikerDismissed ? newBatsman : state.striker,

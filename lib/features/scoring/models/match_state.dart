@@ -8,9 +8,12 @@ enum DismissalType {
   stumped,
 }
 
+enum PlayerStatus { notOut, out }
+
 class Player {
   final String id;
   final String name;
+  final PlayerStatus status;
 
   // Batting Stats
   final int runsScored;
@@ -27,6 +30,7 @@ class Player {
   Player({
     required this.id,
     required this.name,
+    this.status = PlayerStatus.notOut,
     this.runsScored = 0,
     this.ballsFaced = 0,
     this.fours = 0,
@@ -40,6 +44,7 @@ class Player {
   Player copyWith({
     String? id,
     String? name,
+    PlayerStatus? status,
     int? runsScored,
     int? ballsFaced,
     int? fours,
@@ -52,6 +57,7 @@ class Player {
     return Player(
       id: id ?? this.id,
       name: name ?? this.name,
+      status: status ?? this.status,
       runsScored: runsScored ?? this.runsScored,
       ballsFaced: ballsFaced ?? this.ballsFaced,
       fours: fours ?? this.fours,
@@ -68,6 +74,7 @@ class Player {
     return {
       'id': id,
       'name': name,
+      'status': status.index,
       'runsScored': runsScored,
       'ballsFaced': ballsFaced,
       'fours': fours,
@@ -84,6 +91,9 @@ class Player {
     return Player(
       id: json['id'] as String,
       name: json['name'] as String,
+      status: json.containsKey('status') 
+          ? PlayerStatus.values[json['status'] as int] 
+          : PlayerStatus.notOut,
       runsScored: json['runsScored'] as int,
       ballsFaced: json['ballsFaced'] as int,
       fours: json['fours'] as int,
