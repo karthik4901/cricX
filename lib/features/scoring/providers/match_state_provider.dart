@@ -162,6 +162,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         bowler: updatedBowler,
         matchDate: state.matchDate,
         location: state.location,
+        totalOvers: state.totalOvers,
       );
     } else {
       final newBalls = state.teamBInnings.balls + 1;
@@ -190,6 +191,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         bowler: updatedBowler,
         matchDate: state.matchDate,
         location: state.location,
+        totalOvers: state.totalOvers,
       );
     }
 
@@ -207,6 +209,9 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         : state.teamBInnings.overs > 0)) {
       _rotateStrike();
     }
+
+    // Check if the innings is over
+    _checkForEndOfInnings();
 
     // Save the updated state
     _persistenceService.saveMatchState(state);
@@ -352,6 +357,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         bowler: updatedBowler,
         matchDate: state.matchDate,
         location: state.location,
+        totalOvers: state.totalOvers,
       );
     } else {
       // Team B is batting, Team A is bowling
@@ -379,8 +385,12 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         bowler: updatedBowler,
         matchDate: state.matchDate,
         location: state.location,
+        totalOvers: state.totalOvers,
       );
     }
+
+    // Check if the innings is over
+    _checkForEndOfInnings();
 
     // Save the updated state
     _persistenceService.saveMatchState(state);
@@ -420,7 +430,12 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
           bowler: updatedBowler,
           matchDate: state.matchDate,
           location: state.location,
+          totalOvers: state.totalOvers,
         );
+
+        // Check if the innings is over
+        _checkForEndOfInnings();
+
         _persistenceService.saveMatchState(state);
       } else {
         // Team B batting, Team A bowling
@@ -434,7 +449,9 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
           bowler: updatedBowler,
           matchDate: state.matchDate,
           location: state.location,
+          totalOvers: state.totalOvers,
         );
+
         _persistenceService.saveMatchState(state);
       }
     } else if (type == ExtraType.bye || type == ExtraType.legBye) {
@@ -478,6 +495,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
           bowler: updatedBowler,
           matchDate: state.matchDate,
           location: state.location,
+          totalOvers: state.totalOvers,
         );
       } else {
         // Team B batting, Team A bowling
@@ -506,6 +524,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
           bowler: updatedBowler,
           matchDate: state.matchDate,
           location: state.location,
+          totalOvers: state.totalOvers,
         );
       }
 
@@ -523,6 +542,9 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
           : state.teamBInnings.overs > 0)) {
         _rotateStrike();
       }
+
+      // Check if the innings is over
+      _checkForEndOfInnings();
 
       // Save the updated state
       _persistenceService.saveMatchState(state);
@@ -542,7 +564,49 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       bowler: state.bowler,
       matchDate: state.matchDate,
       location: state.location,
+      totalOvers: state.totalOvers,
     );
+  }
+
+  /// Checks if the current innings is over and switches to the second innings if needed.
+  /// An innings is over if:
+  /// 1. All Out: The number of wickets has reached 10, or
+  /// 2. Overs Complete: The number of overs bowled has reached the totalOvers for the match.
+  void _checkForEndOfInnings() {
+    // Only check if we're in the first innings
+    if (state.currentInnings != 1) return;
+
+    final currentBattingTeam = state.teamAInnings;
+
+    // Check if all out (10 wickets)
+    final isAllOut = currentBattingTeam.wickets >= 10;
+
+    // Check if overs complete
+    final isOversComplete = currentBattingTeam.overs >= state.totalOvers;
+
+    // Debug information
+    print('Checking for end of innings:');
+    print('Current overs: ${currentBattingTeam.overs}, Total overs: ${state.totalOvers}');
+    print('Current wickets: ${currentBattingTeam.wickets}');
+    print('Is all out: $isAllOut, Is overs complete: $isOversComplete');
+
+    // If either condition is true, switch to second innings
+    if (isAllOut || isOversComplete) {
+      print('INNINGS OVER! Switching to second innings.');
+      print('Reason: ${isAllOut ? "All out" : "Overs complete"}');
+
+      state = MatchState(
+        teamAInnings: state.teamAInnings,
+        teamBInnings: state.teamBInnings,
+        currentInnings: 2, // Switch to second innings
+        striker: null, // Reset batsmen and bowler
+        nonStriker: null,
+        bowler: null,
+        matchDate: state.matchDate,
+        location: state.location,
+        totalOvers: state.totalOvers,
+      );
+    }
   }
 
   void undoLastAction() {
