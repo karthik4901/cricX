@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/match_state_provider.dart';
 import '../widgets/fall_of_wicket_dialog.dart';
 import '../widgets/retire_batsman_dialog.dart';
+import '../widgets/change_bowler_dialog.dart';
 
 // A private stateful widget to manage the button's animation state.
 class _AnimatedRunButton extends StatefulWidget {
@@ -304,9 +305,44 @@ class ScoringControls extends ConsumerWidget {
                   ListTile(
                     leading: const Icon(Icons.swap_horiz),
                     title: const Text('Change Bowler (Mid-Over)'),
-                    onTap: () {
-                      // Empty onTap callback as specified
+                    onTap: () async {
+                      // Close the bottom sheet
                       Navigator.pop(context);
+
+                      final matchState = ref.read(matchStateProvider);
+                      final currentBowler = matchState.bowler;
+
+                      // Safety check
+                      if (currentBowler == null) return;
+
+                      // Determine which team is bowling
+                      final List<Player> bowlingTeam;
+                      if (matchState.currentInnings == 1) {
+                        // Team B is bowling
+                        bowlingTeam = matchState.teamBInnings.players;
+                      } else {
+                        // Team A is bowling
+                        bowlingTeam = matchState.teamAInnings.players;
+                      }
+
+                      // Show the ChangeBowlerDialog
+                      final newBowler = await showDialog<Player>(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (BuildContext context) {
+                          return ChangeBowlerDialog(
+                            bowlingTeamRoster: bowlingTeam,
+                            currentBowler: currentBowler,
+                          );
+                        },
+                      );
+
+                      // Process the result from the dialog
+                      if (newBowler != null) {
+                        ref.read(matchStateProvider.notifier).replaceBowlerMidOver(
+                          newBowler: newBowler,
+                        );
+                      }
                     },
                   ),
                 ],

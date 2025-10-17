@@ -738,6 +738,29 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
 
     _persistenceService.saveMatchState(state);
   }
+
+  /// Replaces the current bowler with a new bowler in the middle of an over.
+  /// The incomplete over's stats will remain with the original bowler.
+  /// 
+  /// Parameters:
+  /// - newBowler: The new bowler who will replace the current bowler
+  void replaceBowlerMidOver({required Player newBowler}) {
+    _history.add(state);
+
+    state = MatchState(
+      teamAInnings: state.teamAInnings,
+      teamBInnings: state.teamBInnings,
+      currentInnings: state.currentInnings,
+      striker: state.striker,
+      nonStriker: state.nonStriker,
+      bowler: newBowler,
+      matchDate: state.matchDate,
+      location: state.location,
+      totalOvers: state.totalOvers,
+    );
+
+    _persistenceService.saveMatchState(state);
+  }
 }
 
 // Extension methods for easier immutable updates
