@@ -8,7 +8,7 @@ enum DismissalType {
   stumped,
 }
 
-enum PlayerStatus { notOut, out }
+enum PlayerStatus { notOut, out, retiredHurt }
 
 class Player {
   final String id;

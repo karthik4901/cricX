@@ -141,6 +141,9 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       final updatedBattingPlayers = _updatePlayerInList(state.teamAInnings.players, updatedStriker);
       final updatedBowlingPlayers = _updatePlayerInList(state.teamBInnings.players, updatedBowler);
 
+      // Check if the over is complete
+      final isOverComplete = newBalls == 6;
+
       state = MatchState(
         teamAInnings: TeamInnings(
           score: state.teamAInnings.score + runs,
@@ -159,7 +162,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         currentInnings: state.currentInnings,
         striker: updatedStriker,
         nonStriker: state.nonStriker,
-        bowler: updatedBowler,
+        bowler: isOverComplete ? null : updatedBowler, // Set bowler to null if over is complete
         matchDate: state.matchDate,
         location: state.location,
         totalOvers: state.totalOvers,
@@ -169,6 +172,9 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       final newOvers = state.teamBInnings.overs + (newBalls == 6 ? 1 : 0);
       final updatedBattingPlayers = _updatePlayerInList(state.teamBInnings.players, updatedStriker);
       final updatedBowlingPlayers = _updatePlayerInList(state.teamAInnings.players, updatedBowler);
+
+      // Check if the over is complete
+      final isOverComplete = newBalls == 6;
 
       state = MatchState(
         teamAInnings: TeamInnings(
@@ -188,7 +194,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         currentInnings: state.currentInnings,
         striker: updatedStriker,
         nonStriker: state.nonStriker,
-        bowler: updatedBowler,
+        bowler: isOverComplete ? null : updatedBowler, // Set bowler to null if over is complete
         matchDate: state.matchDate,
         location: state.location,
         totalOvers: state.totalOvers,
@@ -345,6 +351,9 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       // Update the batting team's players list with the updated dismissed player
       final updatedBattingTeamPlayers = _updatePlayerInList(state.teamAInnings.players, updatedDismissedBatsman);
 
+      // Check if the over is complete
+      final isOverComplete = newBalls == 6;
+
       state = MatchState(
         teamAInnings: TeamInnings(
           score: state.teamAInnings.score,
@@ -362,7 +371,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         currentInnings: state.currentInnings,
         striker: isStrikerDismissed ? newBatsman : state.striker,
         nonStriker: isStrikerDismissed ? state.nonStriker : newBatsman,
-        bowler: updatedBowler,
+        bowler: isOverComplete ? null : updatedBowler, // Set bowler to null if over is complete
         matchDate: state.matchDate,
         location: state.location,
         totalOvers: state.totalOvers,
@@ -375,6 +384,9 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
 
       // Update the batting team's players list with the updated dismissed player
       final updatedBattingTeamPlayers = _updatePlayerInList(state.teamBInnings.players, updatedDismissedBatsman);
+
+      // Check if the over is complete
+      final isOverComplete = newBalls == 6;
 
       state = MatchState(
         teamAInnings: TeamInnings(
@@ -393,7 +405,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         currentInnings: state.currentInnings,
         striker: isStrikerDismissed ? newBatsman : state.striker,
         nonStriker: isStrikerDismissed ? state.nonStriker : newBatsman,
-        bowler: updatedBowler,
+        bowler: isOverComplete ? null : updatedBowler, // Set bowler to null if over is complete
         matchDate: state.matchDate,
         location: state.location,
         totalOvers: state.totalOvers,
@@ -485,6 +497,9 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         final newOvers = state.teamAInnings.overs + (newBalls == 6 ? 1 : 0);
         final updatedBowlingTeamPlayers = _updatePlayerInList(state.teamBInnings.players, updatedBowler);
 
+        // Check if the over is complete
+        final isOverComplete = newBalls == 6;
+
         state = MatchState(
           teamAInnings: TeamInnings(
             score: state.teamAInnings.score + runs,
@@ -503,7 +518,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
           currentInnings: state.currentInnings,
           striker: state.striker,
           nonStriker: state.nonStriker,
-          bowler: updatedBowler,
+          bowler: isOverComplete ? null : updatedBowler, // Set bowler to null if over is complete
           matchDate: state.matchDate,
           location: state.location,
           totalOvers: state.totalOvers,
@@ -513,6 +528,9 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         final newBalls = state.teamBInnings.balls + 1;
         final newOvers = state.teamBInnings.overs + (newBalls == 6 ? 1 : 0);
         final updatedBowlingTeamPlayers = _updatePlayerInList(state.teamAInnings.players, updatedBowler);
+
+        // Check if the over is complete
+        final isOverComplete = newBalls == 6;
 
         state = MatchState(
           teamAInnings: TeamInnings(
@@ -532,7 +550,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
           currentInnings: state.currentInnings,
           striker: state.striker,
           nonStriker: state.nonStriker,
-          bowler: updatedBowler,
+          bowler: isOverComplete ? null : updatedBowler, // Set bowler to null if over is complete
           matchDate: state.matchDate,
           location: state.location,
           totalOvers: state.totalOvers,
@@ -625,6 +643,26 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       state = _history.removeLast();
       _persistenceService.saveMatchState(state);
     }
+  }
+
+  /// Sets a new bowler for the current innings.
+  /// This is used when a new over starts and a new bowler needs to be selected.
+  void setBowler(Player bowler) {
+    _history.add(state);
+
+    state = MatchState(
+      teamAInnings: state.teamAInnings,
+      teamBInnings: state.teamBInnings,
+      currentInnings: state.currentInnings,
+      striker: state.striker,
+      nonStriker: state.nonStriker,
+      bowler: bowler,
+      matchDate: state.matchDate,
+      location: state.location,
+      totalOvers: state.totalOvers,
+    );
+
+    _persistenceService.saveMatchState(state);
   }
 }
 
