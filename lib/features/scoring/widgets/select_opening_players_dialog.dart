@@ -23,7 +23,16 @@ class _SelectOpeningPlayersDialogState
   Player? _selectedBowler;
 
   @override
+  void initState() {
+    super.initState();
+    print('[DEBUG_LOG] SelectOpeningPlayersDialog initialized');
+    print('[DEBUG_LOG] Batting team players: ${widget.battingTeam.length}');
+    print('[DEBUG_LOG] Bowling team players: ${widget.bowlingTeam.length}');
+  }
+
+  @override
   Widget build(BuildContext context) {
+    print('[DEBUG_LOG] SelectOpeningPlayersDialog build method called');
     final strikerOptions = widget.battingTeam
         .where((player) => player.id != _selectedNonStriker?.id)
         .toList();
@@ -110,6 +119,11 @@ class _SelectOpeningPlayersDialogState
                   _selectedNonStriker != null &&
                   _selectedBowler != null)
               ? () {
+                  print('[DEBUG_LOG] Confirm button pressed in SelectOpeningPlayersDialog');
+                  print('[DEBUG_LOG] Selected striker: ${_selectedStriker?.name}');
+                  print('[DEBUG_LOG] Selected non-striker: ${_selectedNonStriker?.name}');
+                  print('[DEBUG_LOG] Selected bowler: ${_selectedBowler?.name}');
+
                   // FIX 1: Explicitly create a map of the correct, non-nullable type.
                   final Map<String, Player> result = {
                     'striker': _selectedStriker!,
@@ -117,8 +131,11 @@ class _SelectOpeningPlayersDialogState
                     'bowler': _selectedBowler!,
                   };
 
+                  print('[DEBUG_LOG] Returning result from SelectOpeningPlayersDialog');
+
                   // FIX 2: Schedule the pop to run after the build cycle to prevent race conditions.
                   Future.delayed(Duration.zero, () {
+                    print('[DEBUG_LOG] Popping SelectOpeningPlayersDialog with result');
                     Navigator.of(context).pop(result);
                   });
                 }

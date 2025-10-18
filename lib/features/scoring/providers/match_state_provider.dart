@@ -31,6 +31,9 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
             currentInnings: 1,
             matchDate: DateTime.now(),
             location: '',
+            totalOvers: 20, // Default to 20 overs
+            isFirstInningsComplete: false, // Default to false
+            isMatchComplete: false, // Default to false
           ),
         );
 
@@ -56,6 +59,8 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       matchDate: matchDate,
       location: location,
       totalOvers: totalOvers,
+      isFirstInningsComplete: state.isFirstInningsComplete,
+      isMatchComplete: state.isMatchComplete,
     );
     _persistenceService.saveMatchState(state);
   }
@@ -86,6 +91,9 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       bowler: state.bowler,
       matchDate: state.matchDate,
       location: state.location,
+      totalOvers: state.totalOvers,
+      isFirstInningsComplete: state.isFirstInningsComplete,
+      isMatchComplete: state.isMatchComplete,
     );
     _persistenceService.saveMatchState(state);
   }
@@ -95,7 +103,20 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
     required Player nonStriker,
     required Player bowler,
   }) {
+    print('[DEBUG_LOG] setOpeningPlayers called');
+    print('[DEBUG_LOG] Striker: ${striker.name}');
+    print('[DEBUG_LOG] Non-striker: ${nonStriker.name}');
+    print('[DEBUG_LOG] Bowler: ${bowler.name}');
+    print('[DEBUG_LOG] Current innings: ${state.currentInnings}');
+    print('[DEBUG_LOG] isFirstInningsComplete: ${state.isFirstInningsComplete}');
+    print('[DEBUG_LOG] isMatchComplete: ${state.isMatchComplete}');
+
     _history.add(state);
+
+    // Always set isFirstInningsComplete to false when setting up players for the second innings
+    // This ensures the UI reflects that we're now in the second innings
+    final bool shouldResetFirstInningsComplete = state.currentInnings == 2;
+
     state = MatchState(
       teamAInnings: state.teamAInnings,
       teamBInnings: state.teamBInnings,
@@ -105,7 +126,19 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       bowler: bowler,
       matchDate: state.matchDate,
       location: state.location,
+      totalOvers: state.totalOvers,
+      isFirstInningsComplete: shouldResetFirstInningsComplete ? false : state.isFirstInningsComplete,
+      isMatchComplete: state.isMatchComplete,
     );
+
+    print('[DEBUG_LOG] State updated in setOpeningPlayers');
+    print('[DEBUG_LOG] shouldResetFirstInningsComplete: $shouldResetFirstInningsComplete');
+    print('[DEBUG_LOG] New striker: ${state.striker?.name}');
+    print('[DEBUG_LOG] New non-striker: ${state.nonStriker?.name}');
+    print('[DEBUG_LOG] New bowler: ${state.bowler?.name}');
+    print('[DEBUG_LOG] New isFirstInningsComplete: ${state.isFirstInningsComplete}');
+    print('[DEBUG_LOG] New isMatchComplete: ${state.isMatchComplete}');
+
     _persistenceService.saveMatchState(state);
   }
 
@@ -166,6 +199,8 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         matchDate: state.matchDate,
         location: state.location,
         totalOvers: state.totalOvers,
+        isFirstInningsComplete: state.isFirstInningsComplete,
+        isMatchComplete: state.isMatchComplete,
       );
     } else {
       final newBalls = state.teamBInnings.balls + 1;
@@ -198,6 +233,8 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         matchDate: state.matchDate,
         location: state.location,
         totalOvers: state.totalOvers,
+        isFirstInningsComplete: state.isFirstInningsComplete,
+        isMatchComplete: state.isMatchComplete,
       );
     }
 
@@ -268,6 +305,9 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         bowler: updatedBowler,
         matchDate: state.matchDate,
         location: state.location,
+        totalOvers: state.totalOvers,
+        isFirstInningsComplete: state.isFirstInningsComplete,
+        isMatchComplete: state.isMatchComplete,
       );
     } else {
       // Team B is batting, Team A is bowling
@@ -295,6 +335,9 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         bowler: updatedBowler,
         matchDate: state.matchDate,
         location: state.location,
+        totalOvers: state.totalOvers,
+        isFirstInningsComplete: state.isFirstInningsComplete,
+        isMatchComplete: state.isMatchComplete,
       );
     }
 
@@ -375,6 +418,8 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         matchDate: state.matchDate,
         location: state.location,
         totalOvers: state.totalOvers,
+        isFirstInningsComplete: state.isFirstInningsComplete,
+        isMatchComplete: state.isMatchComplete,
       );
     } else {
       // Team B is batting, Team A is bowling
@@ -409,6 +454,8 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         matchDate: state.matchDate,
         location: state.location,
         totalOvers: state.totalOvers,
+        isFirstInningsComplete: state.isFirstInningsComplete,
+        isMatchComplete: state.isMatchComplete,
       );
     }
 
@@ -454,6 +501,8 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
           matchDate: state.matchDate,
           location: state.location,
           totalOvers: state.totalOvers,
+          isFirstInningsComplete: state.isFirstInningsComplete,
+          isMatchComplete: state.isMatchComplete,
         );
 
         // Check if the innings is over
@@ -473,6 +522,8 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
           matchDate: state.matchDate,
           location: state.location,
           totalOvers: state.totalOvers,
+          isFirstInningsComplete: state.isFirstInningsComplete,
+          isMatchComplete: state.isMatchComplete,
         );
 
         _persistenceService.saveMatchState(state);
@@ -522,6 +573,8 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
           matchDate: state.matchDate,
           location: state.location,
           totalOvers: state.totalOvers,
+          isFirstInningsComplete: state.isFirstInningsComplete,
+          isMatchComplete: state.isMatchComplete,
         );
       } else {
         // Team B batting, Team A bowling
@@ -554,6 +607,8 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
           matchDate: state.matchDate,
           location: state.location,
           totalOvers: state.totalOvers,
+          isFirstInningsComplete: state.isFirstInningsComplete,
+          isMatchComplete: state.isMatchComplete,
         );
       }
 
@@ -594,6 +649,8 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       matchDate: state.matchDate,
       location: state.location,
       totalOvers: state.totalOvers,
+      isFirstInningsComplete: state.isFirstInningsComplete,
+      isMatchComplete: state.isMatchComplete,
     );
   }
 
@@ -602,10 +659,8 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
   /// 1. All Out: The number of wickets has reached 10, or
   /// 2. Overs Complete: The number of overs bowled has reached the totalOvers for the match.
   void _checkForEndOfInnings() {
-    // Only check if we're in the first innings
-    if (state.currentInnings != 1) return;
-
-    final currentBattingTeam = state.teamAInnings;
+    // Determine the current batting team based on the innings
+    final currentBattingTeam = state.currentInnings == 1 ? state.teamAInnings : state.teamBInnings;
 
     // Check if all out (10 wickets)
     final isAllOut = currentBattingTeam.wickets >= 10;
@@ -614,27 +669,57 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
     final isOversComplete = currentBattingTeam.overs >= state.totalOvers;
 
     // Debug information
-    print('Checking for end of innings:');
-    print('Current overs: ${currentBattingTeam.overs}, Total overs: ${state.totalOvers}');
-    print('Current wickets: ${currentBattingTeam.wickets}');
-    print('Is all out: $isAllOut, Is overs complete: $isOversComplete');
+    print('[DEBUG_LOG] Checking for end of innings:');
+    print('[DEBUG_LOG] Current innings: ${state.currentInnings}');
+    print('[DEBUG_LOG] Current overs: ${currentBattingTeam.overs}, Total overs: ${state.totalOvers}');
+    print('[DEBUG_LOG] Current wickets: ${currentBattingTeam.wickets}');
+    print('[DEBUG_LOG] Is all out: $isAllOut, Is overs complete: $isOversComplete');
+    print('[DEBUG_LOG] Current isFirstInningsComplete: ${state.isFirstInningsComplete}');
 
-    // If either condition is true, switch to second innings
+    // If either condition is true, handle end of innings
     if (isAllOut || isOversComplete) {
-      print('INNINGS OVER! Switching to second innings.');
-      print('Reason: ${isAllOut ? "All out" : "Overs complete"}');
+      if (state.currentInnings == 1) {
+        // First innings is over, switch to second innings
+        print('[DEBUG_LOG] INNINGS OVER! Switching to second innings.');
+        print('[DEBUG_LOG] Reason: ${isAllOut ? "All out" : "Overs complete"}');
 
-      state = MatchState(
-        teamAInnings: state.teamAInnings,
-        teamBInnings: state.teamBInnings,
-        currentInnings: 2, // Switch to second innings
-        striker: null, // Reset batsmen and bowler
-        nonStriker: null,
-        bowler: null,
-        matchDate: state.matchDate,
-        location: state.location,
-        totalOvers: state.totalOvers,
-      );
+        state = MatchState(
+          teamAInnings: state.teamAInnings,
+          teamBInnings: state.teamBInnings,
+          currentInnings: 2, // Switch to second innings
+          striker: null, // Reset batsmen and bowler
+          nonStriker: null,
+          bowler: null,
+          matchDate: state.matchDate,
+          location: state.location,
+          totalOvers: state.totalOvers,
+          isFirstInningsComplete: true, // Mark first innings as complete
+        );
+
+        print('[DEBUG_LOG] State updated - currentInnings: ${state.currentInnings}');
+        print('[DEBUG_LOG] State updated - isFirstInningsComplete: ${state.isFirstInningsComplete}');
+      } else {
+        // Second innings is over, match is complete
+        print('[DEBUG_LOG] MATCH OVER! Second innings complete.');
+        print('[DEBUG_LOG] Reason: ${isAllOut ? "All out" : "Overs complete"}');
+
+        // Update state to mark match as complete
+        state = MatchState(
+          teamAInnings: state.teamAInnings,
+          teamBInnings: state.teamBInnings,
+          currentInnings: state.currentInnings,
+          striker: state.striker,
+          nonStriker: state.nonStriker,
+          bowler: state.bowler,
+          matchDate: state.matchDate,
+          location: state.location,
+          totalOvers: state.totalOvers,
+          isFirstInningsComplete: state.isFirstInningsComplete,
+          isMatchComplete: true, // Mark match as complete
+        );
+
+        print('[DEBUG_LOG] State updated - isMatchComplete: ${state.isMatchComplete}');
+      }
     }
   }
 
@@ -690,6 +775,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         matchDate: state.matchDate,
         location: state.location,
         totalOvers: state.totalOvers,
+        isFirstInningsComplete: state.isFirstInningsComplete,
       );
     } else {
       // Team B is batting
@@ -712,6 +798,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         matchDate: state.matchDate,
         location: state.location,
         totalOvers: state.totalOvers,
+        isFirstInningsComplete: state.isFirstInningsComplete,
       );
     }
 
@@ -734,6 +821,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       matchDate: state.matchDate,
       location: state.location,
       totalOvers: state.totalOvers,
+      isFirstInningsComplete: state.isFirstInningsComplete,
     );
 
     _persistenceService.saveMatchState(state);
@@ -757,6 +845,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       matchDate: state.matchDate,
       location: state.location,
       totalOvers: state.totalOvers,
+      isFirstInningsComplete: state.isFirstInningsComplete,
     );
 
     _persistenceService.saveMatchState(state);

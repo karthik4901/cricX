@@ -156,6 +156,8 @@ class MatchState {
   final DateTime matchDate;
   final String location;
   final int totalOvers;
+  final bool isFirstInningsComplete;
+  final bool isMatchComplete;
 
   const MatchState({
     required this.teamAInnings,
@@ -167,6 +169,8 @@ class MatchState {
     required this.matchDate,
     required this.location,
     this.totalOvers = 20, // Default to 20 overs
+    this.isFirstInningsComplete = false, // Default to false
+    this.isMatchComplete = false, // Default to false
   });
 
   /// Converts a MatchState object to a JSON map.
@@ -181,6 +185,8 @@ class MatchState {
       'matchDate': matchDate.toIso8601String(),
       'location': location,
       'totalOvers': totalOvers,
+      'isFirstInningsComplete': isFirstInningsComplete,
+      'isMatchComplete': isMatchComplete,
     };
   }
 
@@ -202,6 +208,8 @@ class MatchState {
       matchDate: DateTime.parse(json['matchDate'] as String),
       location: json['location'] as String,
       totalOvers: json.containsKey('totalOvers') ? json['totalOvers'] as int : 20, // Default to 20 overs if not specified
+      isFirstInningsComplete: json.containsKey('isFirstInningsComplete') ? json['isFirstInningsComplete'] as bool : false, // Default to false if not specified
+      isMatchComplete: json.containsKey('isMatchComplete') ? json['isMatchComplete'] as bool : false, // Default to false if not specified
     );
   }
 }
