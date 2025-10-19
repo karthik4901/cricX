@@ -7,6 +7,7 @@ import '../widgets/select_bowler_dialog.dart';
 import '../widgets/select_opening_players_dialog.dart';
 import '../providers/match_state_provider.dart';
 import '../models/match_state.dart';
+import '../../scorecard/view/scorecard_screen.dart';
 
 class ScoringScreen extends ConsumerStatefulWidget {
   final String teamAName;
@@ -158,6 +159,26 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
               ],
             ),
             actions: [
+              ElevatedButton(
+                onPressed: () {
+                  print('[DEBUG_LOG] View Scorecard button pressed');
+                  // Get the current MatchState
+                  final matchState = ref.read(matchStateProvider);
+                  // Close the dialog
+                  Navigator.of(context).pop();
+                  // Navigate to the ScorecardScreen
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => ScorecardScreen(
+                        matchState: matchState,
+                        teamAName: widget.teamAName,
+                        teamBName: widget.teamBName,
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('View Scorecard'),
+              ),
               ElevatedButton(
                 onPressed: () {
                   print('[DEBUG_LOG] Return to Home button pressed');
