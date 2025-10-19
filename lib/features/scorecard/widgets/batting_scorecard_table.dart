@@ -65,12 +65,12 @@ class BattingScorecardTable extends StatelessWidget {
             ...innings.players
                 .where((player) => player.ballsFaced > 0) // Only show players who batted
                 .map((player) => _buildBatsmanRow(context, player)),
-            
+
             // Add extras row
             DataRow(
               cells: [
                 DataCell(Text(
-                  'Extras',
+                  'Extras: ${_calculateExtras()} ( W: ${innings.wides}, NB: ${innings.noBalls}, B: ${innings.byes}, LB: ${innings.legByes} )',
                   style: Theme.of(context).textTheme.bodyMedium,
                 )),
                 DataCell(Text(
@@ -83,7 +83,7 @@ class BattingScorecardTable extends StatelessWidget {
                 const DataCell(Text('')),
               ],
             ),
-            
+
             // Add total row
             DataRow(
               cells: [

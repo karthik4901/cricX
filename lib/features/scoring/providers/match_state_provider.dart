@@ -470,6 +470,27 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
   void recordExtra({required ExtraType type, int runs = 1}) {
     _history.add(state);
 
+    // Determine which extra counter to increment based on the type
+    int newWides = 0;
+    int newNoBalls = 0;
+    int newByes = 0;
+    int newLegByes = 0;
+
+    switch (type) {
+      case ExtraType.wide:
+        newWides = 1;
+        break;
+      case ExtraType.noBall:
+        newNoBalls = 1;
+        break;
+      case ExtraType.bye:
+        newByes = 1;
+        break;
+      case ExtraType.legBye:
+        newLegByes = 1;
+        break;
+    }
+
     if (type == ExtraType.wide || type == ExtraType.noBall) {
       if (state.bowler == null) return; // Safety check
 
@@ -492,7 +513,13 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         // Team A batting, Team B bowling
         final updatedBowlingTeamPlayers = _updatePlayerInList(state.teamBInnings.players, updatedBowler);
         state = MatchState(
-          teamAInnings: state.teamAInnings.copyWith(score: state.teamAInnings.score + runs),
+          teamAInnings: state.teamAInnings.copyWith(
+            score: state.teamAInnings.score + runs,
+            wides: state.teamAInnings.wides + newWides,
+            noBalls: state.teamAInnings.noBalls + newNoBalls,
+            byes: state.teamAInnings.byes + newByes,
+            legByes: state.teamAInnings.legByes + newLegByes,
+          ),
           teamBInnings: state.teamBInnings.copyWith(players: updatedBowlingTeamPlayers),
           currentInnings: state.currentInnings,
           striker: state.striker,
@@ -514,7 +541,13 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         final updatedBowlingTeamPlayers = _updatePlayerInList(state.teamAInnings.players, updatedBowler);
         state = MatchState(
           teamAInnings: state.teamAInnings.copyWith(players: updatedBowlingTeamPlayers),
-          teamBInnings: state.teamBInnings.copyWith(score: state.teamBInnings.score + runs),
+          teamBInnings: state.teamBInnings.copyWith(
+            score: state.teamBInnings.score + runs,
+            wides: state.teamBInnings.wides + newWides,
+            noBalls: state.teamBInnings.noBalls + newNoBalls,
+            byes: state.teamBInnings.byes + newByes,
+            legByes: state.teamBInnings.legByes + newLegByes,
+          ),
           currentInnings: state.currentInnings,
           striker: state.striker,
           nonStriker: state.nonStriker,
@@ -558,6 +591,10 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
             overs: newOvers,
             balls: newBalls % 6,
             players: state.teamAInnings.players,
+            wides: state.teamAInnings.wides + newWides,
+            noBalls: state.teamAInnings.noBalls + newNoBalls,
+            byes: state.teamAInnings.byes + newByes,
+            legByes: state.teamAInnings.legByes + newLegByes,
           ),
           teamBInnings: TeamInnings(
             score: state.teamBInnings.score,
@@ -565,6 +602,10 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
             overs: state.teamBInnings.overs,
             balls: state.teamBInnings.balls,
             players: updatedBowlingTeamPlayers,
+            wides: state.teamBInnings.wides,
+            noBalls: state.teamBInnings.noBalls,
+            byes: state.teamBInnings.byes,
+            legByes: state.teamBInnings.legByes,
           ),
           currentInnings: state.currentInnings,
           striker: state.striker,
@@ -592,6 +633,10 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
             overs: state.teamAInnings.overs,
             balls: state.teamAInnings.balls,
             players: updatedBowlingTeamPlayers,
+            wides: state.teamAInnings.wides,
+            noBalls: state.teamAInnings.noBalls,
+            byes: state.teamAInnings.byes,
+            legByes: state.teamAInnings.legByes,
           ),
           teamBInnings: TeamInnings(
             score: state.teamBInnings.score + runs,
@@ -599,6 +644,10 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
             overs: newOvers,
             balls: newBalls % 6,
             players: state.teamBInnings.players,
+            wides: state.teamBInnings.wides + newWides,
+            noBalls: state.teamBInnings.noBalls + newNoBalls,
+            byes: state.teamBInnings.byes + newByes,
+            legByes: state.teamBInnings.legByes + newLegByes,
           ),
           currentInnings: state.currentInnings,
           striker: state.striker,

@@ -115,6 +115,10 @@ class TeamInnings {
   final int overs;
   final int balls;
   final List<Player> players;
+  final int wides;
+  final int noBalls;
+  final int byes;
+  final int legByes;
 
   const TeamInnings({
     required this.score,
@@ -122,7 +126,36 @@ class TeamInnings {
     required this.overs,
     required this.balls,
     required this.players,
+    this.wides = 0,
+    this.noBalls = 0,
+    this.byes = 0,
+    this.legByes = 0,
   });
+
+  /// Creates a copy of this TeamInnings with the given fields replaced with the new values.
+  TeamInnings copyWith({
+    int? score,
+    int? wickets,
+    int? overs,
+    int? balls,
+    List<Player>? players,
+    int? wides,
+    int? noBalls,
+    int? byes,
+    int? legByes,
+  }) {
+    return TeamInnings(
+      score: score ?? this.score,
+      wickets: wickets ?? this.wickets,
+      overs: overs ?? this.overs,
+      balls: balls ?? this.balls,
+      players: players ?? this.players,
+      wides: wides ?? this.wides,
+      noBalls: noBalls ?? this.noBalls,
+      byes: byes ?? this.byes,
+      legByes: legByes ?? this.legByes,
+    );
+  }
 
   /// Converts a TeamInnings object to a JSON map.
   Map<String, dynamic> toJson() {
@@ -132,6 +165,10 @@ class TeamInnings {
       'overs': overs,
       'balls': balls,
       'players': players.map((player) => player.toJson()).toList(),
+      'wides': wides,
+      'noBalls': noBalls,
+      'byes': byes,
+      'legByes': legByes,
     };
   }
 
@@ -166,6 +203,10 @@ class TeamInnings {
       overs: json['overs'] as int,
       balls: json['balls'] as int,
       players: extractPlayers(),
+      wides: json.containsKey('wides') ? json['wides'] as int : 0,
+      noBalls: json.containsKey('noBalls') ? json['noBalls'] as int : 0,
+      byes: json.containsKey('byes') ? json['byes'] as int : 0,
+      legByes: json.containsKey('legByes') ? json['legByes'] as int : 0,
     );
   }
 }
@@ -218,9 +259,16 @@ class MatchState {
   factory MatchState.fromJson(Map<String, dynamic> json) {
     // Safely extract and convert the nullable Player objects
     Player? extractPlayer(String key) {
-      if (json[key] == null) return null;
+      if (!json.containsKey(key) || json[key] == null) return null;
+
       try {
-        return Player.fromJson(json[key] as Map<String, dynamic>);
+        // Check if the value is a Map before trying to cast it
+        if (json[key] is Map<String, dynamic>) {
+          return Player.fromJson(json[key] as Map<String, dynamic>);
+        } else {
+          print('Error: $key is not a Map<String, dynamic>');
+          return null;
+        }
       } catch (e) {
         print('Error parsing $key: $e');
         return null;
