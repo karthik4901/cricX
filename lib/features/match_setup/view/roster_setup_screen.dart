@@ -130,13 +130,14 @@ class _RosterSetupScreenState extends ConsumerState<RosterSetupScreen> with Sing
                         bowler: selectedPlayers['bowler']!,
                       );
 
-                  Navigator.of(context).push(
+                  Navigator.of(context).pushAndRemoveUntil(
                     MaterialPageRoute(
                       builder: (context) => ScoringScreen(
                         teamAName: widget.teamAName,
                         teamBName: widget.teamBName,
                       ),
                     ),
+                    (route) => route.isFirst, // Keep only the first route (HomeScreen)
                   );
                 }
               },

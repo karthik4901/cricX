@@ -776,6 +776,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         location: state.location,
         totalOvers: state.totalOvers,
         isFirstInningsComplete: state.isFirstInningsComplete,
+        isMatchComplete: state.isMatchComplete,
       );
     } else {
       // Team B is batting
@@ -799,6 +800,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         location: state.location,
         totalOvers: state.totalOvers,
         isFirstInningsComplete: state.isFirstInningsComplete,
+        isMatchComplete: state.isMatchComplete,
       );
     }
 
@@ -822,6 +824,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       location: state.location,
       totalOvers: state.totalOvers,
       isFirstInningsComplete: state.isFirstInningsComplete,
+      isMatchComplete: state.isMatchComplete,
     );
 
     _persistenceService.saveMatchState(state);
@@ -846,6 +849,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       location: state.location,
       totalOvers: state.totalOvers,
       isFirstInningsComplete: state.isFirstInningsComplete,
+      isMatchComplete: state.isMatchComplete,
     );
 
     _persistenceService.saveMatchState(state);
