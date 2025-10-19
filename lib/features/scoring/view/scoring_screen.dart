@@ -8,6 +8,7 @@ import '../widgets/select_opening_players_dialog.dart';
 import '../providers/match_state_provider.dart';
 import '../models/match_state.dart';
 import '../../scorecard/view/scorecard_screen.dart';
+import '../../home/view/home_screen.dart';
 
 class ScoringScreen extends ConsumerStatefulWidget {
   final String teamAName;
@@ -166,8 +167,8 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
                   final matchState = ref.read(matchStateProvider);
                   // Close the dialog
                   Navigator.of(context).pop();
-                  // Navigate to the ScorecardScreen
-                  Navigator.of(context).push(
+                  // Navigate to the ScorecardScreen and remove all previous routes until HomeScreen
+                  Navigator.of(context).pushAndRemoveUntil(
                     MaterialPageRoute(
                       builder: (context) => ScorecardScreen(
                         matchState: matchState,
@@ -175,6 +176,7 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
                         teamBName: widget.teamBName,
                       ),
                     ),
+                    (route) => route.isFirst, // This will remove all routes until the first route (HomeScreen)
                   );
                 },
                 child: const Text('View Scorecard'),

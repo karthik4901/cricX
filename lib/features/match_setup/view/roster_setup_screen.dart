@@ -110,6 +110,13 @@ class _RosterSetupScreenState extends ConsumerState<RosterSetupScreen> with Sing
                       teamBPlayers: teamBPlayers,
                     );
 
+                // Set the number of players per side based on the team with more players
+                final playersPerSide = teamAPlayers.length >= teamBPlayers.length 
+                    ? teamAPlayers.length 
+                    : teamBPlayers.length;
+                print('[DEBUG_LOG] Setting players per side to: $playersPerSide');
+                ref.read(matchStateProvider.notifier).setPlayersPerSide(playersPerSide);
+
                 // Show dialog to select opening players
                 final selectedPlayers = await showDialog<Map<String, Player>>(
                   context: context,

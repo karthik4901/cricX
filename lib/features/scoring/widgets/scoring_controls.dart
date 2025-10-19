@@ -140,9 +140,22 @@ class ScoringControls extends ConsumerWidget {
     return OutlinedButton(
       onPressed: () async {
         if (label == 'Wicket') {
+          // Read the current state immediately using ref.read(matchStateProvider)
           final matchState = ref.read(matchStateProvider);
           final striker = matchState.striker;
           final nonStriker = matchState.nonStriker;
+
+          // Get current wickets based on which innings we're in
+          final int currentWickets = matchState.currentInnings == 1 
+              ? matchState.teamAInnings.wickets 
+              : matchState.teamBInnings.wickets;
+
+          // Add Debug Prints to log the values being checked
+          print('[DEBUG_LOG] Wicket button pressed. Current wickets: $currentWickets, Players per side: ${matchState.playersPerSide}');
+
+          // Perform the check: if (currentWickets + 1 >= playersPerSide - 1)
+          final bool isLastWicket = (currentWickets + 1) >= (matchState.playersPerSide - 1);
+          print('[DEBUG_LOG] Is last wicket: $isLastWicket');
 
           // Determine which team is batting
           final List<Player> battingTeam;
@@ -158,33 +171,43 @@ class ScoringControls extends ConsumerWidget {
             bowlingTeam = matchState.teamAInnings.players;
           }
 
-          // Get the list of remaining batsmen (exclude current striker and non-striker)
-          final List<Player> remainingBatsmen = battingTeam
-              .where((player) => 
-                  player.id != striker?.id && 
-                  player.id != nonStriker?.id)
-              .toList();
-
-          // Show the FallOfWicketDialog
-          final dismissalDetails = await showDialog<Map<String, dynamic>>(
-            context: context,
-            barrierDismissible: false,
-            builder: (BuildContext context) {
-              return FallOfWicketDialog(
-                remainingBatsmen: remainingBatsmen,
-                fieldingTeam: bowlingTeam,
-              );
-            },
-          );
-
-          // Process the result from the dialog
-          if (dismissalDetails != null) {
-            // Call the handleWicketDismissal method with the correct parameters
+          if (isLastWicket) {
+            // If it's the last wicket, bypass the dialog and directly record the wicket
+            print('[DEBUG_LOG] Last wicket - bypassing dialog and recording wicket directly');
             ref.read(matchStateProvider.notifier).handleWicketDismissal(
               dismissedBatsman: striker!,
-              dismissalType: dismissalDetails['dismissalType'] as DismissalType,
-              newBatsman: dismissalDetails['nextBatsman'] as Player,
+              dismissalType: DismissalType.bowled, // Default dismissal type
+              newBatsman: null, // No new batsman needed for last wicket
             );
+          } else {
+            // Get the list of remaining batsmen (exclude current striker and non-striker)
+            final List<Player> remainingBatsmen = battingTeam
+                .where((player) => 
+                    player.id != striker?.id && 
+                    player.id != nonStriker?.id)
+                .toList();
+
+            // Show the FallOfWicketDialog
+            final dismissalDetails = await showDialog<Map<String, dynamic>>(
+              context: context,
+              barrierDismissible: false,
+              builder: (BuildContext context) {
+                return FallOfWicketDialog(
+                  remainingBatsmen: remainingBatsmen,
+                  fieldingTeam: bowlingTeam,
+                );
+              },
+            );
+
+            // Process the result from the dialog
+            if (dismissalDetails != null) {
+              // Call the handleWicketDismissal method with the correct parameters
+              ref.read(matchStateProvider.notifier).handleWicketDismissal(
+                dismissedBatsman: striker!,
+                dismissalType: dismissalDetails['dismissalType'] as DismissalType,
+                newBatsman: dismissalDetails['nextBatsman'] as Player,
+              );
+            }
           }
         } else if (label == 'Extras') {
           showModalBottomSheet(

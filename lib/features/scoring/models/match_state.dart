@@ -21,6 +21,11 @@ class Player {
   final int fours;
   final int sixes;
 
+  // Dismissal Information
+  final DismissalType? dismissalType;
+  final String? bowlerWhoDismissedId;
+  final String? fielderInvolvedId;
+
   // Bowling Stats
   final int wicketsTaken;
   final double oversBowled;
@@ -35,6 +40,9 @@ class Player {
     this.ballsFaced = 0,
     this.fours = 0,
     this.sixes = 0,
+    this.dismissalType = null,
+    this.bowlerWhoDismissedId = null,
+    this.fielderInvolvedId = null,
     this.wicketsTaken = 0,
     this.oversBowled = 0.0,
     this.runsConceded = 0,
@@ -49,6 +57,9 @@ class Player {
     int? ballsFaced,
     int? fours,
     int? sixes,
+    DismissalType? dismissalType,
+    String? bowlerWhoDismissedId,
+    String? fielderInvolvedId,
     int? wicketsTaken,
     double? oversBowled,
     int? runsConceded,
@@ -62,6 +73,9 @@ class Player {
       ballsFaced: ballsFaced ?? this.ballsFaced,
       fours: fours ?? this.fours,
       sixes: sixes ?? this.sixes,
+      dismissalType: dismissalType ?? this.dismissalType,
+      bowlerWhoDismissedId: bowlerWhoDismissedId ?? this.bowlerWhoDismissedId,
+      fielderInvolvedId: fielderInvolvedId ?? this.fielderInvolvedId,
       wicketsTaken: wicketsTaken ?? this.wicketsTaken,
       oversBowled: oversBowled ?? this.oversBowled,
       runsConceded: runsConceded ?? this.runsConceded,
@@ -71,7 +85,7 @@ class Player {
 
   /// Converts a Player object to a JSON map.
   Map<String, dynamic> toJson() {
-    return {
+    final Map<String, dynamic> json = {
       'id': id,
       'name': name,
       'status': status.index,
@@ -84,6 +98,19 @@ class Player {
       'runsConceded': runsConceded,
       'maidens': maidens,
     };
+
+    // Add dismissal information only if available
+    if (dismissalType != null) {
+      json['dismissalType'] = dismissalType!.index;
+    }
+    if (bowlerWhoDismissedId != null) {
+      json['bowlerWhoDismissedId'] = bowlerWhoDismissedId;
+    }
+    if (fielderInvolvedId != null) {
+      json['fielderInvolvedId'] = fielderInvolvedId;
+    }
+
+    return json;
   }
 
   /// Creates a Player object from a JSON map.
@@ -98,6 +125,16 @@ class Player {
       ballsFaced: json['ballsFaced'] as int,
       fours: json['fours'] as int,
       sixes: json['sixes'] as int,
+      // Deserialize dismissal information if available
+      dismissalType: json.containsKey('dismissalType') && json['dismissalType'] != null
+          ? DismissalType.values[json['dismissalType'] as int]
+          : null,
+      bowlerWhoDismissedId: json.containsKey('bowlerWhoDismissedId')
+          ? json['bowlerWhoDismissedId'] as String?
+          : null,
+      fielderInvolvedId: json.containsKey('fielderInvolvedId')
+          ? json['fielderInvolvedId'] as String?
+          : null,
       wicketsTaken: json['wicketsTaken'] as int,
       // Handle the case where oversBowled might be decoded as an int
       oversBowled: json['oversBowled'] is int 
@@ -223,6 +260,7 @@ class MatchState {
   final int totalOvers;
   final bool isFirstInningsComplete;
   final bool isMatchComplete;
+  final int playersPerSide;
 
   const MatchState({
     required this.teamAInnings,
@@ -236,6 +274,7 @@ class MatchState {
     this.totalOvers = 20, // Default to 20 overs
     this.isFirstInningsComplete = false, // Default to false
     this.isMatchComplete = false, // Default to false
+    this.playersPerSide = 11, // Default to 11 players per side
   });
 
   /// Converts a MatchState object to a JSON map.
@@ -252,6 +291,7 @@ class MatchState {
       'totalOvers': totalOvers,
       'isFirstInningsComplete': isFirstInningsComplete,
       'isMatchComplete': isMatchComplete,
+      'playersPerSide': playersPerSide,
     };
   }
 
@@ -287,6 +327,7 @@ class MatchState {
       totalOvers: json.containsKey('totalOvers') ? json['totalOvers'] as int : 20, // Default to 20 overs if not specified
       isFirstInningsComplete: json.containsKey('isFirstInningsComplete') ? json['isFirstInningsComplete'] as bool : false, // Default to false if not specified
       isMatchComplete: json.containsKey('isMatchComplete') ? json['isMatchComplete'] as bool : false, // Default to false if not specified
+      playersPerSide: json.containsKey('playersPerSide') ? json['playersPerSide'] as int : 11, // Default to 11 players if not specified
     );
   }
 }
