@@ -99,7 +99,10 @@ class Player {
       fours: json['fours'] as int,
       sixes: json['sixes'] as int,
       wicketsTaken: json['wicketsTaken'] as int,
-      oversBowled: json['oversBowled'] as double,
+      // Handle the case where oversBowled might be decoded as an int
+      oversBowled: json['oversBowled'] is int 
+          ? (json['oversBowled'] as int).toDouble() 
+          : json['oversBowled'] as double,
       runsConceded: json['runsConceded'] as int,
       maidens: json['maidens'] as int,
     );
@@ -134,14 +137,35 @@ class TeamInnings {
 
   /// Creates a TeamInnings object from a JSON map.
   factory TeamInnings.fromJson(Map<String, dynamic> json) {
+    // Safely extract and convert the players list
+    List<Player> extractPlayers() {
+      if (!json.containsKey('players') || json['players'] == null) return [];
+
+      try {
+        final playersList = json['players'] as List;
+        return playersList
+            .map((playerJson) {
+              try {
+                return Player.fromJson(playerJson as Map<String, dynamic>);
+              } catch (e) {
+                print('Error parsing player: $e');
+                // Return a default player if there's an error
+                return Player(id: 'error', name: 'Error');
+              }
+            })
+            .toList();
+      } catch (e) {
+        print('Error parsing players list: $e');
+        return [];
+      }
+    }
+
     return TeamInnings(
       score: json['score'] as int,
       wickets: json['wickets'] as int,
       overs: json['overs'] as int,
       balls: json['balls'] as int,
-      players: (json['players'] as List)
-          .map((playerJson) => Player.fromJson(playerJson as Map<String, dynamic>))
-          .toList(),
+      players: extractPlayers(),
     );
   }
 }
@@ -192,19 +216,24 @@ class MatchState {
 
   /// Creates a MatchState object from a JSON map.
   factory MatchState.fromJson(Map<String, dynamic> json) {
+    // Safely extract and convert the nullable Player objects
+    Player? extractPlayer(String key) {
+      if (json[key] == null) return null;
+      try {
+        return Player.fromJson(json[key] as Map<String, dynamic>);
+      } catch (e) {
+        print('Error parsing $key: $e');
+        return null;
+      }
+    }
+
     return MatchState(
       teamAInnings: TeamInnings.fromJson(json['teamAInnings'] as Map<String, dynamic>),
       teamBInnings: TeamInnings.fromJson(json['teamBInnings'] as Map<String, dynamic>),
       currentInnings: json['currentInnings'] as int,
-      striker: json['striker'] != null 
-          ? Player.fromJson(json['striker'] as Map<String, dynamic>) 
-          : null,
-      nonStriker: json['nonStriker'] != null 
-          ? Player.fromJson(json['nonStriker'] as Map<String, dynamic>) 
-          : null,
-      bowler: json['bowler'] != null 
-          ? Player.fromJson(json['bowler'] as Map<String, dynamic>) 
-          : null,
+      striker: extractPlayer('striker'),
+      nonStriker: extractPlayer('nonStriker'),
+      bowler: extractPlayer('bowler'),
       matchDate: DateTime.parse(json['matchDate'] as String),
       location: json['location'] as String,
       totalOvers: json.containsKey('totalOvers') ? json['totalOvers'] as int : 20, // Default to 20 overs if not specified
