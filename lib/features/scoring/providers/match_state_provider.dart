@@ -40,7 +40,65 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
 
   /// Creates a MatchStateNotifier with a provided initial state.
   MatchStateNotifier.fromState(MatchState initialState) : super(initialState) {
-    _persistenceService.saveMatchState(initialState);
+    // Validate and fix the state if innings should be complete but flag wasn't set
+    _validateAndFixState();
+    _persistenceService.saveMatchState(state);
+  }
+
+  /// Validates the current state and fixes flags if innings should be complete
+  void _validateAndFixState() {
+    // Check first innings
+    if (state.currentInnings == 1 && !state.isFirstInningsComplete && !state.isMatchComplete) {
+      final currentBattingTeam = state.teamAInnings;
+      final isAllOut = currentBattingTeam.wickets >= (state.playersPerSide - 1);
+      final isOversComplete = currentBattingTeam.overs >= state.totalOvers;
+
+      if (isAllOut || isOversComplete) {
+        print('[DEBUG_LOG] Validating state: First innings should be complete but flag was false. Fixing...');
+        print('[DEBUG_LOG] Wickets: ${currentBattingTeam.wickets}, PlayersPerSide: ${state.playersPerSide}, AllOut: $isAllOut');
+        print('[DEBUG_LOG] Overs: ${currentBattingTeam.overs}, TotalOvers: ${state.totalOvers}, OversComplete: $isOversComplete');
+
+        state = MatchState(
+          teamAInnings: state.teamAInnings,
+          teamBInnings: state.teamBInnings,
+          currentInnings: 2, // Switch to second innings
+          striker: null, // Reset batsmen and bowler
+          nonStriker: null,
+          bowler: null,
+          matchDate: state.matchDate,
+          location: state.location,
+          totalOvers: state.totalOvers,
+          isFirstInningsComplete: true, // Mark first innings as complete
+          playersPerSide: state.playersPerSide,
+        );
+      }
+    }
+    // Check match completion
+    else if (state.currentInnings == 2 && !state.isMatchComplete) {
+      final currentBattingTeam = state.teamBInnings;
+      final currentBowlingTeam = state.teamAInnings;
+      final isAllOut = currentBattingTeam.wickets >= (state.playersPerSide - 1);
+      final isOversComplete = currentBattingTeam.overs >= state.totalOvers;
+      final isTargetChased = currentBattingTeam.score > currentBowlingTeam.score;
+
+      if (isAllOut || isOversComplete || isTargetChased) {
+        print('[DEBUG_LOG] Validating state: Match should be complete but flag was false. Fixing...');
+        state = MatchState(
+          teamAInnings: state.teamAInnings,
+          teamBInnings: state.teamBInnings,
+          currentInnings: state.currentInnings,
+          striker: state.striker,
+          nonStriker: state.nonStriker,
+          bowler: state.bowler,
+          matchDate: state.matchDate,
+          location: state.location,
+          totalOvers: state.totalOvers,
+          isFirstInningsComplete: state.isFirstInningsComplete,
+          isMatchComplete: true, // Mark match as complete
+          playersPerSide: state.playersPerSide,
+        );
+      }
+    }
   }
 
   // Helper to update a player in a list immutably
@@ -117,6 +175,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       totalOvers: state.totalOvers,
       isFirstInningsComplete: state.isFirstInningsComplete,
       isMatchComplete: state.isMatchComplete,
+      playersPerSide: state.playersPerSide,
     );
     _persistenceService.saveMatchState(state);
   }
@@ -152,6 +211,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       totalOvers: state.totalOvers,
       isFirstInningsComplete: shouldResetFirstInningsComplete ? false : state.isFirstInningsComplete,
       isMatchComplete: state.isMatchComplete,
+      playersPerSide: state.playersPerSide,
     );
 
     print('[DEBUG_LOG] State updated in setOpeningPlayers');
@@ -224,6 +284,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         totalOvers: state.totalOvers,
         isFirstInningsComplete: state.isFirstInningsComplete,
         isMatchComplete: state.isMatchComplete,
+        playersPerSide: state.playersPerSide,
       );
     } else {
       final newBalls = state.teamBInnings.balls + 1;
@@ -258,6 +319,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         totalOvers: state.totalOvers,
         isFirstInningsComplete: state.isFirstInningsComplete,
         isMatchComplete: state.isMatchComplete,
+        playersPerSide: state.playersPerSide,
       );
     }
 
@@ -331,6 +393,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         totalOvers: state.totalOvers,
         isFirstInningsComplete: state.isFirstInningsComplete,
         isMatchComplete: state.isMatchComplete,
+        playersPerSide: state.playersPerSide,
       );
     } else {
       // Team B is batting, Team A is bowling
@@ -361,6 +424,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         totalOvers: state.totalOvers,
         isFirstInningsComplete: state.isFirstInningsComplete,
         isMatchComplete: state.isMatchComplete,
+        playersPerSide: state.playersPerSide,
       );
     }
 
@@ -435,8 +499,12 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
             balls: state.teamBInnings.balls,
             players: updatedBowlingTeamPlayers),
         currentInnings: state.currentInnings,
-        striker: newBatsman == null ? null : (isStrikerDismissed ? newBatsman : state.striker),
-        nonStriker: newBatsman == null ? null : (isStrikerDismissed ? state.nonStriker : newBatsman),
+        striker: newBatsman == null 
+            ? (isStrikerDismissed ? null : state.striker) // Preserve striker if non-striker was dismissed
+            : (isStrikerDismissed ? newBatsman : state.striker),
+        nonStriker: newBatsman == null 
+            ? (isStrikerDismissed ? state.nonStriker : null) // Preserve non-striker if striker was dismissed
+            : (isStrikerDismissed ? state.nonStriker : newBatsman),
         bowler: isOverComplete ? null : updatedBowler, // Set bowler to null if over is complete
         matchDate: state.matchDate,
         location: state.location,
@@ -472,8 +540,12 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
           players: updatedBattingTeamPlayers,
         ),
         currentInnings: state.currentInnings,
-        striker: newBatsman == null ? null : (isStrikerDismissed ? newBatsman : state.striker),
-        nonStriker: newBatsman == null ? null : (isStrikerDismissed ? state.nonStriker : newBatsman),
+        striker: newBatsman == null 
+            ? (isStrikerDismissed ? null : state.striker) // Preserve striker if non-striker was dismissed
+            : (isStrikerDismissed ? newBatsman : state.striker),
+        nonStriker: newBatsman == null 
+            ? (isStrikerDismissed ? state.nonStriker : null) // Preserve non-striker if striker was dismissed
+            : (isStrikerDismissed ? state.nonStriker : newBatsman),
         bowler: isOverComplete ? null : updatedBowler, // Set bowler to null if over is complete
         matchDate: state.matchDate,
         location: state.location,
@@ -555,6 +627,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
           totalOvers: state.totalOvers,
           isFirstInningsComplete: state.isFirstInningsComplete,
           isMatchComplete: state.isMatchComplete,
+          playersPerSide: state.playersPerSide,
         );
 
         // Check if the innings is over
@@ -582,6 +655,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
           totalOvers: state.totalOvers,
           isFirstInningsComplete: state.isFirstInningsComplete,
           isMatchComplete: state.isMatchComplete,
+          playersPerSide: state.playersPerSide,
         );
 
         _persistenceService.saveMatchState(state);
@@ -641,6 +715,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
           totalOvers: state.totalOvers,
           isFirstInningsComplete: state.isFirstInningsComplete,
           isMatchComplete: state.isMatchComplete,
+          playersPerSide: state.playersPerSide,
         );
       } else {
         // Team B batting, Team A bowling
@@ -683,6 +758,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
           totalOvers: state.totalOvers,
           isFirstInningsComplete: state.isFirstInningsComplete,
           isMatchComplete: state.isMatchComplete,
+          playersPerSide: state.playersPerSide,
         );
       }
 
@@ -725,6 +801,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       totalOvers: state.totalOvers,
       isFirstInningsComplete: state.isFirstInningsComplete,
       isMatchComplete: state.isMatchComplete,
+      playersPerSide: state.playersPerSide,
     );
   }
 
@@ -740,7 +817,8 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
     final currentBowlingTeam = state.currentInnings == 1 ? state.teamBInnings : state.teamAInnings;
 
     // Check if all out (playersPerSide - 1 wickets)
-    final isAllOut = currentBattingTeam.wickets >= (state.playersPerSide - 1);
+    final wicketsThreshold = state.playersPerSide - 1;
+    final isAllOut = currentBattingTeam.wickets >= wicketsThreshold;
 
     // Check if overs complete
     final isOversComplete = currentBattingTeam.overs >= state.totalOvers;
@@ -753,7 +831,8 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
     print('[DEBUG_LOG] Current innings: ${state.currentInnings}');
     print('[DEBUG_LOG] Current overs: ${currentBattingTeam.overs}, Total overs: ${state.totalOvers}');
     print('[DEBUG_LOG] Current wickets: ${currentBattingTeam.wickets}');
-    print('[DEBUG_LOG] Is all out: $isAllOut, Is overs complete: $isOversComplete');
+    print('[DEBUG_LOG] Players per side: ${state.playersPerSide}, Wickets threshold: $wicketsThreshold');
+    print('[DEBUG_LOG] Is all out: $isAllOut (${currentBattingTeam.wickets} >= $wicketsThreshold), Is overs complete: $isOversComplete');
     if (state.currentInnings == 2) {
       print('[DEBUG_LOG] Batting team score: ${currentBattingTeam.score}, Bowling team score: ${currentBowlingTeam.score}');
       print('[DEBUG_LOG] Is target chased: $isTargetChased');
@@ -867,6 +946,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         totalOvers: state.totalOvers,
         isFirstInningsComplete: state.isFirstInningsComplete,
         isMatchComplete: state.isMatchComplete,
+        playersPerSide: state.playersPerSide,
       );
     } else {
       // Team B is batting
@@ -891,6 +971,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
         totalOvers: state.totalOvers,
         isFirstInningsComplete: state.isFirstInningsComplete,
         isMatchComplete: state.isMatchComplete,
+        playersPerSide: state.playersPerSide,
       );
     }
 
@@ -900,6 +981,106 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
 
   /// Sets a new bowler for the current innings.
   /// This is used when a new over starts and a new bowler needs to be selected.
+  /// Sets the new batsman after a wicket has been recorded with a temporary null placeholder.
+  ///
+  /// This method should be called after `handleWicketDismissal` was invoked with `newBatsman: null`.
+  /// It uses the last pre-dismissal state from `_history` to determine which end lost the wicket
+  /// and assigns the provided `newBatsman` to the correct end, keeping the surviving batsman at the other end.
+  void setNewBatsmanAfterWicket(Player newBatsman) {
+    // If both batsmen are already set, do nothing
+    if (state.striker != null && state.nonStriker != null) {
+      return;
+    }
+
+    // If one batsman is already preserved (survivor), use that and assign the new batsman to the other end
+    if (state.striker != null && state.nonStriker == null) {
+      // Striker is preserved (non-striker was dismissed), new batsman goes to non-striker
+      state = MatchState(
+        teamAInnings: state.teamAInnings,
+        teamBInnings: state.teamBInnings,
+        currentInnings: state.currentInnings,
+        striker: state.striker,
+        nonStriker: newBatsman,
+        bowler: state.bowler,
+        matchDate: state.matchDate,
+        location: state.location,
+        totalOvers: state.totalOvers,
+        isFirstInningsComplete: state.isFirstInningsComplete,
+        isMatchComplete: state.isMatchComplete,
+        playersPerSide: state.playersPerSide,
+      );
+      _persistenceService.saveMatchState(state);
+      return;
+    }
+    
+    if (state.nonStriker != null && state.striker == null) {
+      // Non-striker is preserved (striker was dismissed), new batsman goes to striker
+      state = MatchState(
+        teamAInnings: state.teamAInnings,
+        teamBInnings: state.teamBInnings,
+        currentInnings: state.currentInnings,
+        striker: newBatsman,
+        nonStriker: state.nonStriker,
+        bowler: state.bowler,
+        matchDate: state.matchDate,
+        location: state.location,
+        totalOvers: state.totalOvers,
+        isFirstInningsComplete: state.isFirstInningsComplete,
+        isMatchComplete: state.isMatchComplete,
+        playersPerSide: state.playersPerSide,
+      );
+      _persistenceService.saveMatchState(state);
+      return;
+    }
+
+    // Fallback: use pre-dismissal state to determine which end was dismissed
+    // Safety: need a pre-dismissal state to infer which end was dismissed
+    if (_history.isEmpty) return;
+    final preDismissal = _history.last;
+
+    // Determine batting team players before and after dismissal
+    final bool teamAIsBatting = state.currentInnings == 1;
+    final List<Player> preBattingPlayers = teamAIsBatting
+        ? preDismissal.teamAInnings.players
+        : preDismissal.teamBInnings.players;
+    final List<Player> curBattingPlayers = teamAIsBatting
+        ? state.teamAInnings.players
+        : state.teamBInnings.players;
+
+    final Player? preStriker = preDismissal.striker;
+    final Player? preNonStriker = preDismissal.nonStriker;
+
+    if (preStriker == null || preNonStriker == null) return;
+
+    // Fetch updated statuses for the two pre-dismissal batsmen from current batting players
+    Player updatedStriker = curBattingPlayers.firstWhere((p) => p.id == preStriker.id, orElse: () => preStriker);
+    Player updatedNonStriker = curBattingPlayers.firstWhere((p) => p.id == preNonStriker.id, orElse: () => preNonStriker);
+
+    final bool strikerWasDismissed = updatedStriker.status == PlayerStatus.out;
+    final Player survivor = strikerWasDismissed ? updatedNonStriker : updatedStriker;
+
+    // Assign ends: new batsman replaces the dismissed end by default
+    final Player? newStriker = strikerWasDismissed ? newBatsman : survivor;
+    final Player? newNonStriker = strikerWasDismissed ? survivor : newBatsman;
+
+    state = MatchState(
+      teamAInnings: state.teamAInnings,
+      teamBInnings: state.teamBInnings,
+      currentInnings: state.currentInnings,
+      striker: newStriker,
+      nonStriker: newNonStriker,
+      bowler: state.bowler,
+      matchDate: state.matchDate,
+      location: state.location,
+      totalOvers: state.totalOvers,
+      isFirstInningsComplete: state.isFirstInningsComplete,
+      isMatchComplete: state.isMatchComplete,
+      playersPerSide: state.playersPerSide,
+    );
+
+    _persistenceService.saveMatchState(state);
+  }
+
   void setBowler(Player bowler) {
     _history.add(state);
 
@@ -941,6 +1122,7 @@ class MatchStateNotifier extends StateNotifier<MatchState> {
       totalOvers: state.totalOvers,
       isFirstInningsComplete: state.isFirstInningsComplete,
       isMatchComplete: state.isMatchComplete,
+      playersPerSide: state.playersPerSide,
     );
 
     _persistenceService.saveMatchState(state);

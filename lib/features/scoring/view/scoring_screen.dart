@@ -25,6 +25,8 @@ class ScoringScreen extends ConsumerStatefulWidget {
 }
 
 class _ScoringScreenState extends ConsumerState<ScoringScreen> {
+  bool _hasCheckedInitialState = false;
+
   @override
   void initState() {
     super.initState();
@@ -204,6 +206,8 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
 
   // Function to show the select bowler dialog
   void _showSelectBowlerDialog() async {
+    if (!context.mounted) return;
+    
     final matchState = ref.read(matchStateProvider);
 
     // Determine which team is bowling based on the current innings
@@ -232,8 +236,73 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
     );
 
     // If a bowler was selected, update the state
-    if (selectedBowler != null) {
+    if (selectedBowler != null && context.mounted) {
       ref.read(matchStateProvider.notifier).setBowler(selectedBowler);
+      
+      // Check if batsmen are null (wicket fell on last ball of over)
+      await Future.delayed(Duration.zero);
+      await Future.microtask(() {});
+      
+      final updatedState = ref.read(matchStateProvider);
+      if (updatedState.striker == null || updatedState.nonStriker == null) {
+        // Need to select batsman after wicket
+        print('[DEBUG_LOG] Batsmen are null after bowler selection. Showing batsman selection dialog.');
+        await _showBatsmanSelectionDialog(updatedState);
+      }
+    }
+  }
+
+  // Function to show dialog for selecting new batsman after wicket on last ball
+  Future<void> _showBatsmanSelectionDialog(MatchState matchState) async {
+    if (!context.mounted) return;
+    
+    // Get the batting team
+    final battingTeam = matchState.currentInnings == 1
+        ? matchState.teamAInnings.players
+        : matchState.teamBInnings.players;
+    
+    // Get remaining batsmen (not out players, excluding non-striker if any)
+    final remainingBatsmen = battingTeam
+        .where((player) => 
+            player.status == PlayerStatus.notOut &&
+            player.id != matchState.nonStriker?.id) // Exclude non-striker (survivor)
+        .toList();
+    
+    if (remainingBatsmen.isEmpty) {
+      print('[DEBUG_LOG] No remaining batsmen available.');
+      return;
+    }
+    
+    print('[DEBUG_LOG] Showing batsman selection. Excluding non-striker: ${matchState.nonStriker?.name ?? "none"}');
+    
+    // Show simple dialog to select batsman
+    final selectedBatsman = await showDialog<Player>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Select New Batsman'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: remainingBatsmen.length,
+              itemBuilder: (context, index) {
+                final player = remainingBatsmen[index];
+                return ListTile(
+                  title: Text(player.name),
+                  onTap: () => Navigator.of(context).pop(player),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+    
+    if (selectedBatsman != null && context.mounted) {
+      print('[DEBUG_LOG] Selected batsman: ${selectedBatsman.name}');
+      ref.read(matchStateProvider.notifier).setNewBatsmanAfterWicket(selectedBatsman);
     }
   }
 
@@ -244,6 +313,23 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
     print('[DEBUG_LOG] Build method - isFirstInningsComplete: ${matchState.isFirstInningsComplete}');
     print('[DEBUG_LOG] Build method - isMatchComplete: ${matchState.isMatchComplete}');
     print('[DEBUG_LOG] Build method - bowler: ${matchState.bowler?.name}');
+
+    // Check if innings is complete when screen first loads (for persisted state)
+    if (!_hasCheckedInitialState && matchState.currentInnings == 1 && !matchState.isMatchComplete) {
+      _hasCheckedInitialState = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final state = ref.read(matchStateProvider);
+        final currentBattingTeam = state.teamAInnings;
+        final isActuallyAllOut = currentBattingTeam.wickets >= (state.playersPerSide - 1);
+        final isOversComplete = currentBattingTeam.overs >= state.totalOvers;
+        
+        // If innings is actually complete but flag wasn't set, trigger the dialog
+        if ((isActuallyAllOut || isOversComplete) && !state.isFirstInningsComplete) {
+          print('[DEBUG_LOG] Detected innings complete on load (flag was not set). Triggering dialog.');
+          _showInningsCompleteDialog();
+        }
+      });
+    }
 
     // Listen for changes in the match state
     ref.listen<MatchState>(matchStateProvider, (previous, current) {
@@ -269,9 +355,19 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
       }
     });
 
+    // Validate if first innings is actually complete (even if flag is wrong from persisted state)
+    final currentBattingTeam = matchState.currentInnings == 1 
+        ? matchState.teamAInnings 
+        : matchState.teamBInnings;
+    final isActuallyAllOut = currentBattingTeam.wickets >= (matchState.playersPerSide - 1);
+    final isOversComplete = currentBattingTeam.overs >= matchState.totalOvers;
+    final isFirstInningsActuallyComplete = matchState.currentInnings == 1 && 
+        (matchState.isFirstInningsComplete || isActuallyAllOut || isOversComplete);
+
     // Debug which UI component will be shown
-    if (matchState.isFirstInningsComplete) {
+    if (isFirstInningsActuallyComplete) {
       print('[DEBUG_LOG] UI will show empty Container (innings complete)');
+      print('[DEBUG_LOG] Flag: ${matchState.isFirstInningsComplete}, AllOut: $isActuallyAllOut, OversComplete: $isOversComplete');
     } else if (matchState.bowler == null) {
       print('[DEBUG_LOG] UI will show Select Next Bowler button (end of over)');
     } else {
@@ -371,8 +467,8 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
             if (matchState.isMatchComplete)
               // If match is complete, show empty container (match is over)
               Container()
-            else if (matchState.isFirstInningsComplete)
-              // If first innings is complete, show empty container (dialog is handling UI)
+            else if (isFirstInningsActuallyComplete)
+              // If first innings is actually complete (validated), show empty container (dialog is handling UI)
               Container()
             else if (matchState.bowler == null)
               // Show select bowler button if bowler is null (end of over)

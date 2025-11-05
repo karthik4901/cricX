@@ -140,73 +140,99 @@ class ScoringControls extends ConsumerWidget {
     return OutlinedButton(
       onPressed: () async {
         if (label == 'Wicket') {
-          // Read the current state immediately using ref.read(matchStateProvider)
-          final matchState = ref.read(matchStateProvider);
-          final striker = matchState.striker;
-          final nonStriker = matchState.nonStriker;
+          // Read the current state to get striker and nonStriker
+          final currentState = ref.read(matchStateProvider);
+          final striker = currentState.striker;
+          final nonStriker = currentState.nonStriker;
 
-          // Get current wickets based on which innings we're in
-          final int currentWickets = matchState.currentInnings == 1 
-              ? matchState.teamAInnings.wickets 
-              : matchState.teamBInnings.wickets;
-
-          // Add Debug Prints to log the values being checked
-          print('[DEBUG_LOG] Wicket button pressed. Current wickets: $currentWickets, Players per side: ${matchState.playersPerSide}');
-
-          // Perform the check: if (currentWickets + 1 >= playersPerSide - 1)
-          final bool isLastWicket = (currentWickets + 1) >= (matchState.playersPerSide - 1);
-          print('[DEBUG_LOG] Is last wicket: $isLastWicket');
-
-          // Determine which team is batting
-          final List<Player> battingTeam;
-          final List<Player> bowlingTeam;
-
-          if (matchState.currentInnings == 1) {
-            // Team A is batting, Team B is bowling
-            battingTeam = matchState.teamAInnings.players;
-            bowlingTeam = matchState.teamBInnings.players;
-          } else {
-            // Team B is batting, Team A is bowling
-            battingTeam = matchState.teamBInnings.players;
-            bowlingTeam = matchState.teamAInnings.players;
+          if (striker == null) {
+            return; // Safety guard
           }
 
-          if (isLastWicket) {
-            // If it's the last wicket, bypass the dialog and directly record the wicket
-            print('[DEBUG_LOG] Last wicket - bypassing dialog and recording wicket directly');
-            ref.read(matchStateProvider.notifier).handleWicketDismissal(
-              dismissedBatsman: striker!,
-              dismissalType: DismissalType.bowled, // Default dismissal type
-              newBatsman: null, // No new batsman needed for last wicket
-            );
-          } else {
-            // Get the list of remaining batsmen (exclude current striker and non-striker)
-            final List<Player> remainingBatsmen = battingTeam
-                .where((player) => 
-                    player.id != striker?.id && 
-                    player.id != nonStriker?.id)
-                .toList();
+          // Check if this wicket would result in all out BEFORE dismissing
+          final currentBattingTeam = currentState.currentInnings == 1
+              ? currentState.teamAInnings
+              : currentState.teamBInnings;
+          final wicketsAfterThis = currentBattingTeam.wickets + 1;
+          final wouldBeAllOut = wicketsAfterThis >= (currentState.playersPerSide - 1);
 
-            // Show the FallOfWicketDialog
-            final dismissalDetails = await showDialog<Map<String, dynamic>>(
-              context: context,
-              barrierDismissible: false,
-              builder: (BuildContext context) {
-                return FallOfWicketDialog(
-                  remainingBatsmen: remainingBatsmen,
-                  fieldingTeam: bowlingTeam,
-                );
-              },
-            );
+          // Call handleWicketDismissal with null for newBatsman
+          ref.read(matchStateProvider.notifier).handleWicketDismissal(
+            dismissedBatsman: striker,
+            dismissalType: DismissalType.bowled, // Placeholder
+            newBatsman: null,
+          );
 
-            // Process the result from the dialog
-            if (dismissalDetails != null) {
-              // Call the handleWicketDismissal method with the correct parameters
-              ref.read(matchStateProvider.notifier).handleWicketDismissal(
-                dismissedBatsman: striker!,
-                dismissalType: dismissalDetails['dismissalType'] as DismissalType,
-                newBatsman: dismissalDetails['nextBatsman'] as Player,
+          // Await Future.delayed to allow state to update (use microtask for better async handling)
+          await Future.delayed(Duration.zero);
+          await Future.microtask(() {});
+
+          // Check if context is still mounted before proceeding
+          if (!context.mounted) return;
+
+          // Read the updated state
+          final updatedState = ref.read(matchStateProvider);
+
+          // Check wickets after this dismissal to determine if all out
+          final updatedBattingTeam = updatedState.currentInnings == 1
+              ? updatedState.teamAInnings
+              : updatedState.teamBInnings;
+          final isActuallyAllOut = updatedBattingTeam.wickets >= (updatedState.playersPerSide - 1);
+
+          // Check if match or first innings is now complete - return immediately if so
+          if (updatedState.isMatchComplete || 
+              updatedState.isFirstInningsComplete || 
+              wouldBeAllOut || 
+              isActuallyAllOut) {
+            print('[DEBUG_LOG] Innings or Match is complete (or would be all out). Not showing batsman selection.');
+            print('[DEBUG_LOG] Wickets: ${updatedBattingTeam.wickets}, PlayersPerSide: ${updatedState.playersPerSide}, IsAllOut: $isActuallyAllOut');
+            return;
+          }
+
+          // Get the properly filtered list of remaining batsmen
+          final List<Player> battingTeam = (updatedState.currentInnings == 1)
+              ? updatedState.teamAInnings.players
+              : updatedState.teamBInnings.players;
+          
+          // Use updated state's striker/nonStriker (survivor is preserved, dismissed one is null)
+          final remainingBatsmen = battingTeam
+              .where((player) =>
+                  player.status == PlayerStatus.notOut &&
+                  player.id != updatedState.striker?.id && // Exclude current striker (survivor if non-striker was dismissed)
+                  player.id != updatedState.nonStriker?.id && // Exclude current non-striker (survivor if striker was dismissed)
+                  player.id != striker.id) // Also exclude dismissed striker (safety check)
+              .toList();
+
+          // If no remaining batsmen, innings is complete (all out) - return immediately
+          if (remainingBatsmen.isEmpty) {
+            print('[DEBUG_LOG] No remaining batsmen (all out). Not showing batsman selection.');
+            return;
+          }
+
+          // Determine the bowling team for the dialog
+          final List<Player> bowlingTeam = (updatedState.currentInnings == 1)
+              ? updatedState.teamBInnings.players
+              : updatedState.teamAInnings.players;
+
+          // Show the FallOfWicketDialog and await its result
+          if (!context.mounted) return;
+          
+          final dismissalDetails = await showDialog<Map<String, dynamic>>(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return FallOfWicketDialog(
+                remainingBatsmen: remainingBatsmen,
+                fieldingTeam: bowlingTeam,
               );
+            },
+          );
+
+          // If the dialog returns a newBatsman, call setNewBatsmanAfterWicket
+          if (dismissalDetails != null && context.mounted) {
+            final Player? newBatsman = dismissalDetails['nextBatsman'] as Player?;
+            if (newBatsman != null) {
+              ref.read(matchStateProvider.notifier).setNewBatsmanAfterWicket(newBatsman);
             }
           }
         } else if (label == 'Extras') {
