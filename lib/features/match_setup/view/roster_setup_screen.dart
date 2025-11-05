@@ -82,6 +82,9 @@ class _RosterSetupScreenState extends ConsumerState<RosterSetupScreen> with Sing
             padding: const EdgeInsets.all(16.0),
             child: FilledButton(
               onPressed: () async {
+                // Ensure we start from a clean slate (no leakage from previous match)
+                ref.read(matchStateProvider.notifier).resetForNewMatch();
+
                 // Set match metadata
                 ref.read(matchStateProvider.notifier).setMatchMetadata(
                       matchDate: DateTime.now(),

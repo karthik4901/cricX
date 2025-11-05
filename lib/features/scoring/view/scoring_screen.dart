@@ -365,7 +365,9 @@ class _ScoringScreenState extends ConsumerState<ScoringScreen> {
         (matchState.isFirstInningsComplete || isActuallyAllOut || isOversComplete);
 
     // Debug which UI component will be shown
-    if (isFirstInningsActuallyComplete) {
+    if (matchState.isMatchComplete) {
+      print('[DEBUG_LOG] UI will show empty Container (match complete)');
+    } else if (isFirstInningsActuallyComplete) {
       print('[DEBUG_LOG] UI will show empty Container (innings complete)');
       print('[DEBUG_LOG] Flag: ${matchState.isFirstInningsComplete}, AllOut: $isActuallyAllOut, OversComplete: $isOversComplete');
     } else if (matchState.bowler == null) {

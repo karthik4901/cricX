@@ -156,11 +156,12 @@ class ScoringControls extends ConsumerWidget {
           final wicketsAfterThis = currentBattingTeam.wickets + 1;
           final wouldBeAllOut = wicketsAfterThis >= (currentState.playersPerSide - 1);
 
-          // Call handleWicketDismissal with null for newBatsman
+          // Call handleWicketDismissal with null for newBatsman (will update with dismissal details after dialog)
           ref.read(matchStateProvider.notifier).handleWicketDismissal(
             dismissedBatsman: striker,
-            dismissalType: DismissalType.bowled, // Placeholder
+            dismissalType: DismissalType.bowled, // Placeholder, will be updated from dialog
             newBatsman: null,
+            fielderId: null, // Will be updated from dialog
           );
 
           // Await Future.delayed to allow state to update (use microtask for better async handling)
@@ -179,13 +180,18 @@ class ScoringControls extends ConsumerWidget {
               : updatedState.teamBInnings;
           final isActuallyAllOut = updatedBattingTeam.wickets >= (updatedState.playersPerSide - 1);
 
-          // Check if match or first innings is now complete - return immediately if so
-          if (updatedState.isMatchComplete || 
-              updatedState.isFirstInningsComplete || 
-              wouldBeAllOut || 
-              isActuallyAllOut) {
-            print('[DEBUG_LOG] Innings or Match is complete (or would be all out). Not showing batsman selection.');
-            print('[DEBUG_LOG] Wickets: ${updatedBattingTeam.wickets}, PlayersPerSide: ${updatedState.playersPerSide}, IsAllOut: $isActuallyAllOut');
+          // ALWAYS show the dialog when a wicket falls, UNLESS:
+          // 1. Match is complete
+          // 2. First innings is complete (for first innings wickets)
+          // 3. All out (no remaining batsmen)
+          // Note: We check remainingBatsmen below, so we only need to check match/innings flags here
+          if (updatedState.isMatchComplete) {
+            print('[DEBUG_LOG] Match is complete. Not showing batsman selection.');
+            return;
+          }
+          
+          if (updatedState.currentInnings == 1 && updatedState.isFirstInningsComplete) {
+            print('[DEBUG_LOG] First innings is complete. Not showing batsman selection.');
             return;
           }
 
@@ -228,9 +234,22 @@ class ScoringControls extends ConsumerWidget {
             },
           );
 
-          // If the dialog returns a newBatsman, call setNewBatsmanAfterWicket
+          // If the dialog returns dismissal details, update the dismissed player with full info
           if (dismissalDetails != null && context.mounted) {
+            final DismissalType? dismissalType = dismissalDetails['dismissalType'] as DismissalType?;
+            final Player? fielder = dismissalDetails['fielder'] as Player?;
             final Player? newBatsman = dismissalDetails['nextBatsman'] as Player?;
+            
+            // Update dismissal info on the dismissed player
+            if (dismissalType != null) {
+              ref.read(matchStateProvider.notifier).updateDismissalInfo(
+                dismissedBatsmanId: striker.id,
+                dismissalType: dismissalType,
+                fielderId: fielder?.id,
+              );
+            }
+            
+            // Set the new batsman
             if (newBatsman != null) {
               ref.read(matchStateProvider.notifier).setNewBatsmanAfterWicket(newBatsman);
             }
